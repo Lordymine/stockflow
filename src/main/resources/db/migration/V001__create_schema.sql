@@ -190,6 +190,8 @@ CREATE TABLE refresh_tokens (
     expires_at TIMESTAMP NOT NULL,
     revoked_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    version BIGINT DEFAULT 0 NOT NULL,
     INDEX idx_user_token (user_id, token_hash),
     INDEX idx_expires (expires_at),
     INDEX fk_refresh_tokens_tenant (tenant_id),
