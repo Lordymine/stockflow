@@ -31,9 +31,9 @@ public class Role extends BaseEntity {
     @Column(name = "description", length = 255)
     private String description;
 
-    // Bidirectional relationship
+    // Bidirectional relationship with UserRole (join table entity)
     @Builder.Default
-    @ManyToMany(mappedBy = "roles", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @OneToMany(mappedBy = "role", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private Set<UserRole> userRoles = new HashSet<>();
 
     /**
