@@ -1,17 +1,38 @@
 package com.stockflow.shared.domain.exception;
 
 /**
- * Exceção lançada quando há conflito de dados (ex: slug duplicado).
+ * Exception thrown when a request conflicts with the current state of the server.
  *
- * Marcar como final previne subclasses não autorizadas,
- * garantindo que a hierarquia de exceções permaneça controlada.
+ * <p>This exception typically indicates:</p>
+ * <ul>
+ *   <li>Concurrent modification conflicts (optimistic locking failures)</li>
+ *   <li>Duplicate resource creation attempts</li>
+ *   <li>Business rule violations that prevent the operation</li>
+ *   <li>State inconsistencies</li>
+ * </ul>
+ *
+ * <p>Maps to HTTP 409 Conflict.</p>
  */
-public final class ConflictException extends BaseDomainException {
-    public ConflictException(String message) {
-        super(message, "CONFLICT");
+public class ConflictException extends BaseDomainException {
+
+    /**
+     * Constructs a new conflict exception with the specified error code and message.
+     *
+     * @param errorCode the error code (e.g., "RESOURCE_ALREADY_EXISTS", "CONCURRENT_MODIFICATION")
+     * @param message   the detail message explaining the conflict
+     */
+    public ConflictException(String errorCode, String message) {
+        super(errorCode, message);
     }
 
-    public ConflictException(String message, Object... params) {
-        super(message, "CONFLICT", params);
+    /**
+     * Constructs a new conflict exception with the specified error code, message, and cause.
+     *
+     * @param errorCode the error code
+     * @param message   the detail message
+     * @param cause     the cause of the exception
+     */
+    public ConflictException(String errorCode, String message, Throwable cause) {
+        super(errorCode, message, cause);
     }
 }

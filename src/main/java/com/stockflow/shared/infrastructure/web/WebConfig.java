@@ -1,21 +1,35 @@
 package com.stockflow.shared.infrastructure.web;
 
-import com.stockflow.shared.infrastructure.security.TenantIdResolver;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.util.List;
-
+/**
+ * Web configuration for the application.
+ *
+ * <p>Configures CORS settings and other web-related configurations.</p>
+ */
 @Configuration
-@RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
 
-    private final TenantIdResolver tenantIdResolver;
-
+    /**
+     * Configures CORS mappings for the application.
+     *
+     * <p>In production, CORS should be configured to allow only specific origins.
+     * Currently allows all origins for development purposes.</p>
+     *
+     * @param registry the CORS registry
+     */
     @Override
-    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-        resolvers.add(tenantIdResolver);
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/api/**")
+            .allowedOrigins(
+                "http://localhost:4200",  // Angular dev server
+                "http://localhost:3000"   // Alternative dev server
+            )
+            .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+            .allowedHeaders("*")
+            .allowCredentials(true)
+            .maxAge(3600);
     }
 }

@@ -22,9 +22,10 @@ buildNumber.properties
 .springBeans
 .sts4-cache
 
-# Documentation (excluir .md exceto README.md)
+# Documentation (keep important docs)
 **/*.md
 !README.md
+!docs/**/*.md
 
 # Sprint project documentation
 sprint-project/

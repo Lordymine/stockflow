@@ -1,99 +1,181 @@
 package com.stockflow.shared.infrastructure.web;
 
-import com.stockflow.shared.application.dto.ApiResponse;
+import com.stockflow.shared.application.dto.ApiErrorResponse;
 import com.stockflow.shared.domain.exception.*;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Exception handler global usando Java 21 Pattern Matching.
+ * Global exception handler for all REST controllers.
  *
- * Pattern Matching para switch com Sealed Classes permite:
- * - Código mais conciso e legível
- * - Pattern matching exhaustivo (compilador força cobrir todos os casos)
- * - Sem default clause necessária
- * - Guards simplificados (variáveis sem nome com __)
+ * <p>This class handles exceptions thrown by any controller and converts them
+ * into standardized error responses following the API contract.</p>
+ *
+ * <p>Handles:</p>
+ * <ul>
+ *   <li>Domain exceptions (NotFoundException, ConflictException, etc.)</li>
+ *   <li>Validation exceptions (MethodArgumentNotValidException)</li>
+ *   <li>Security exceptions (AccessDeniedException)</li>
+ *   <li>Concurrency exceptions (OptimisticLockingFailureException)</li>
+ *   <li>Generic server errors</li>
+ * </ul>
  */
-@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
-     * Handler para exceções de domínio usando Pattern Matching.
-     *
-     * Com Sealed Classes, o compilador garante que todos os tipos
-     * de exceção são tratados - não há risco de esquecer um caso.
+     * Handles NotFoundException.
      */
-    @ExceptionHandler(BaseDomainException.class)
-    public ResponseEntity<ApiResponse<Object>> handleDomainException(BaseDomainException ex) {
-        log.error("Domain exception: {}", ex.getMessage());
-
-        // Pattern Matching para switch - Java 21
-        // Cada case faz type pattern matching e guarda o resultado
-        // Variável __ indica que não precisamos do valor, apenas do tipo
-        return switch (ex) {
-            case NotFoundException nfe -> ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.error(nfe.getCode(), nfe.getMessage()));
-
-            case ConflictException ce -> ResponseEntity
-                .status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error(ce.getCode(), ce.getMessage()));
-
-            case BadRequestException bre -> ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(bre.getCode(), bre.getMessage()));
-
-            case ValidationException ve -> ResponseEntity
-                .status(HttpStatus.UNPROCESSABLE_ENTITY)
-                .body(ApiResponse.error(ve.getCode(), ve.getMessage()));
-
-            case ForbiddenException fe -> ResponseEntity
-                .status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.error(fe.getCode(), fe.getMessage()));
-
-            // Sem default necessário - compilador força exaustividade
-            // Se adicionarmos uma nova exceção, o código não compila até tratá-la aqui
-        };
+    @ExceptionHandler(NotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ResponseEntity<ApiErrorResponse> handleNotFoundException(
+        NotFoundException ex,
+        WebRequest request
+    ) {
+        ApiErrorResponse response = ApiErrorResponse.of(
+            ex.getErrorCode(),
+            ex.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
+    /**
+     * Handles ConflictException.
+     */
+    @ExceptionHandler(ConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ResponseEntity<ApiErrorResponse> handleConflictException(
+        ConflictException ex,
+        WebRequest request
+    ) {
+        ApiErrorResponse response = ApiErrorResponse.of(
+            ex.getErrorCode(),
+            ex.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    /**
+     * Handles ForbiddenException.
+     */
+    @ExceptionHandler(ForbiddenException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ResponseEntity<ApiErrorResponse> handleForbiddenException(
+        ForbiddenException ex,
+        WebRequest request
+    ) {
+        ApiErrorResponse response = ApiErrorResponse.of(
+            ex.getErrorCode(),
+            ex.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
+    /**
+     * Handles BadRequestException.
+     */
+    @ExceptionHandler(BadRequestException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ApiErrorResponse> handleBadRequestException(
+        BadRequestException ex,
+        WebRequest request
+    ) {
+        ApiErrorResponse response = ApiErrorResponse.of(
+            ex.getErrorCode(),
+            ex.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /**
+     * Handles ValidationException.
+     */
+    @ExceptionHandler(ValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ApiErrorResponse> handleValidationException(
+        ValidationException ex,
+        WebRequest request
+    ) {
+        ApiErrorResponse response = ApiErrorResponse.of(
+            ex.getErrorCode(),
+            ex.getMessage(),
+            ex.hasErrors() ? ex.getValidationErrors() : null
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /**
+     * Handles Bean Validation errors.
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Object>> handleValidationErrors(
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ApiErrorResponse> handleValidationException(
         MethodArgumentNotValidException ex,
         WebRequest request
     ) {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
-
-        log.warn("Validation errors: {}", errors);
-
-        return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
-            .body(ApiResponse.error("VALIDATION_ERROR", "Validation failed", errors));
+        ApiErrorResponse response = ApiErrorResponse.fromFieldErrors(ex.getBindingResult().getFieldErrors());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
+    /**
+     * Handles AccessDeniedException (Spring Security).
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ResponseEntity<ApiErrorResponse> handleAccessDeniedException(
+        AccessDeniedException ex,
+        WebRequest request
+    ) {
+        ApiErrorResponse response = ApiErrorResponse.of(
+            "ACCESS_DENIED",
+            "You do not have permission to access this resource"
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
+    /**
+     * Handles OptimisticLockingFailureException (concurrent modification).
+     */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ResponseEntity<ApiErrorResponse> handleOptimisticLockingFailureException(
+        OptimisticLockingFailureException ex,
+        WebRequest request
+    ) {
+        ApiErrorResponse response = ApiErrorResponse.of(
+            "CONCURRENT_MODIFICATION",
+            "This resource was modified by another user. Please refresh and try again."
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    /**
+     * Handles all other exceptions (fallback).
+     */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Object>> handleGlobal(
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ResponseEntity<ApiErrorResponse> handleGenericException(
         Exception ex,
         WebRequest request
     ) {
-        log.error("Unexpected error: {}", ex.getMessage(), ex);
+        // Log the full exception for debugging
+        ex.printStackTrace();
 
-        return ResponseEntity
-            .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(ApiResponse.error("INTERNAL_ERROR", "An unexpected error occurred"));
+        ApiErrorResponse response = ApiErrorResponse.of(
+            "INTERNAL_SERVER_ERROR",
+            "An unexpected error occurred. Please try again later."
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }

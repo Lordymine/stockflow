@@ -1,65 +1,92 @@
 package com.stockflow.shared.infrastructure.web;
 
-import com.stockflow.shared.application.dto.*;
-import com.stockflow.shared.domain.exception.*;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
+import com.stockflow.shared.application.dto.ApiResponse;
+import com.stockflow.shared.application.dto.ApiErrorResponse;
+import com.stockflow.shared.domain.exception.NotFoundException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import java.time.LocalDateTime;
 import java.util.Map;
 
+/**
+ * Test controller for verifying API responses and error handling.
+ *
+ * <p>This controller provides test endpoints to verify that:</p>
+ * <ul>
+ *   <li>Success responses work correctly</li>
+ *   <li>Error handling works correctly</li>
+ *   <li>The application is running</li>
+ * </ul>
+ *
+ * <p><strong>NOTE:</strong> This controller should be disabled or removed in production.</p>
+ */
+@Tag(name = "Test", description = "Test endpoints for API verification")
 @RestController
 @RequestMapping("/api/v1/test")
 public class TestController {
 
-    @GetMapping("/success")
-    public ResponseEntity<ApiResponse<String>> testSuccess() {
-        return ApiResponse.okResponse("Success!");
-    }
-
-    @GetMapping("/success-with-meta")
-    public ResponseEntity<ApiResponse<Map<String, String>>> testSuccessWithMeta() {
-        Map<String, String> data = Map.of("key", "value");
-        Map<String, Object> meta = Map.of("version", "1.0");
-        return ApiResponse.okResponse(data, meta);
-    }
-
-    @GetMapping("/paginated")
-    public ResponseEntity<ApiResponse<PaginationResponse<String>>> testPaginated(
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "10") int size
-    ) {
-        List<String> items = List.of("item1", "item2", "item3");
-        Page<String> pageResult = new PageImpl<>(items);
-
-        PaginationResponse<String> response = PaginationResponse.fromPage(pageResult);
-
-        return ApiResponse.okResponse(response);
-    }
-
-    @GetMapping("/error")
-    public ResponseEntity<ApiResponse<Void>> testError() {
-        return ApiResponse.errorResponse(
-            "TEST_ERROR",
-            "This is a test error",
-            org.springframework.http.HttpStatus.BAD_REQUEST
+    /**
+     * Health check endpoint.
+     *
+     * @return success response with current timestamp
+     */
+    @Operation(summary = "Health check", description = "Verifies that the API is running")
+    @GetMapping("/health")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> health() {
+        Map<String, Object> data = Map.of(
+            "status", "UP",
+            "timestamp", LocalDateTime.now(),
+            "application", "StockFlow PRO"
         );
+
+        return ResponseEntity.ok(ApiResponse.of(data));
     }
 
+    /**
+     * Test success response with data.
+     *
+     * @return success response with sample data
+     */
+    @Operation(summary = "Test success response", description = "Returns a sample success response")
+    @GetMapping("/success")
+    public ResponseEntity<ApiResponse<Map<String, String>>> testSuccess() {
+        Map<String, String> data = Map.of(
+            "message", "API is working correctly!",
+            "status", "success"
+        );
+
+        return ResponseEntity.ok(ApiResponse.of(data));
+    }
+
+    /**
+     * Test error response.
+     *
+     * @return error response
+     */
+    @Operation(summary = "Test error response", description = "Returns a sample error response")
+    @GetMapping("/error")
+    public ResponseEntity<ApiErrorResponse> testError() {
+        ApiErrorResponse response = ApiErrorResponse.of(
+            "TEST_ERROR",
+            "This is a test error message"
+        );
+
+        return ResponseEntity.status(500).body(response);
+    }
+
+    /**
+     * Test not found exception.
+     *
+     * @return 404 error response
+     */
+    @Operation(summary = "Test not found", description = "Returns a 404 error response")
     @GetMapping("/not-found")
-    public void testNotFound() {
-        throw new NotFoundException("TestResource", 123L);
-    }
-
-    @GetMapping("/bad-request")
-    public void testBadRequest() {
-        throw new BadRequestException("Invalid parameter");
-    }
-
-    @GetMapping("/conflict")
-    public void testConflict() {
-        throw new ConflictException("Resource already exists");
+    public ResponseEntity<Void> testNotFound() {
+        throw NotFoundException.of("TestResource", 999L);
     }
 }

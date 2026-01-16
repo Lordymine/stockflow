@@ -1,0 +1,1399 @@
+openapi: 3.0.3
+info:
+  title: StockFlow PRO API
+  version: 1.0.0
+  description: Multi-tenant inventory management API.
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+  - name: Tenants
+  - name: Users
+  - name: Branches
+  - name: Catalog
+  - name: Inventory
+  - name: Dashboard
+paths:
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthLoginRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/AuthLoginData'
+                  meta:
+                    type: object
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRefreshRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/AuthRefreshData'
+                  meta:
+                    type: object
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthLogoutRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                  meta:
+                    type: object
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/tenants:
+    post:
+      tags: [Tenants]
+      summary: Create initial tenant
+      description: Public only when no tenant exists (bootstrap).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantBootstrapRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/TenantBootstrapData'
+                  meta:
+                    type: object
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/v1/tenants/me:
+    get:
+      tags: [Tenants]
+      summary: Get current tenant
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Tenant'
+                  meta:
+                    type: object
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/users:
+    post:
+      tags: [Users]
+      summary: Create user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/User'
+                  meta:
+                    type: object
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '403':
+          $ref: '#/components/responses/ErrorResponse'
+    get:
+      tags: [Users]
+      summary: List users
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/User'
+                  meta:
+                    $ref: '#/components/schemas/PageMeta'
+        '403':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/v1/users/{id}/active:
+    patch:
+      tags: [Users]
+      summary: Activate or deactivate user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActiveRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/User'
+                  meta:
+                    type: object
+        '403':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/v1/users/{id}/roles:
+    put:
+      tags: [Users]
+      summary: Update user roles
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RolesUpdateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/User'
+                  meta:
+                    type: object
+        '403':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/v1/users/{id}/branches:
+    put:
+      tags: [Users]
+      summary: Update user branches
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BranchesUpdateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/User'
+                  meta:
+                    type: object
+        '403':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/branches:
+    post:
+      tags: [Branches]
+      summary: Create branch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BranchCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Branch'
+                  meta:
+                    type: object
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '403':
+          $ref: '#/components/responses/ErrorResponse'
+    get:
+      tags: [Branches]
+      summary: List branches
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Branch'
+                  meta:
+                    $ref: '#/components/schemas/PageMeta'
+        '403':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/v1/branches/{id}/active:
+    patch:
+      tags: [Branches]
+      summary: Activate or deactivate branch
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActiveRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Branch'
+                  meta:
+                    type: object
+        '403':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/categories:
+    post:
+      tags: [Catalog]
+      summary: Create category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Category'
+                  meta:
+                    type: object
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+    get:
+      tags: [Catalog]
+      summary: List categories
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Category'
+                  meta:
+                    $ref: '#/components/schemas/PageMeta'
+  /api/v1/categories/{id}:
+    put:
+      tags: [Catalog]
+      summary: Update category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Category'
+                  meta:
+                    type: object
+
+  /api/v1/products:
+    post:
+      tags: [Catalog]
+      summary: Create product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Product'
+                  meta:
+                    type: object
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+    get:
+      tags: [Catalog]
+      summary: List products
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Product'
+                  meta:
+                    $ref: '#/components/schemas/PageMeta'
+  /api/v1/products/{id}:
+    get:
+      tags: [Catalog]
+      summary: Get product by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Product'
+                  meta:
+                    type: object
+    put:
+      tags: [Catalog]
+      summary: Update product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Product'
+                  meta:
+                    type: object
+  /api/v1/products/{id}/active:
+    patch:
+      tags: [Catalog]
+      summary: Activate or deactivate product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActiveRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Product'
+                  meta:
+                    type: object
+
+  /api/v1/branches/{branchId}/stock:
+    get:
+      tags: [Inventory]
+      summary: List stock by branch
+      parameters:
+        - name: branchId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/StockItem'
+                  meta:
+                    $ref: '#/components/schemas/PageMeta'
+        '403':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/v1/branches/{branchId}/stock/{productId}:
+    get:
+      tags: [Inventory]
+      summary: Get stock by product
+      parameters:
+        - name: branchId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/StockItem'
+                  meta:
+                    type: object
+        '403':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/branches/{branchId}/movements:
+    post:
+      tags: [Inventory]
+      summary: Create stock movement
+      description: Only IN, OUT and ADJUSTMENT. TRANSFER is internal. STAFF can only use IN and OUT.
+      parameters:
+        - name: branchId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MovementCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/StockMovement'
+                  meta:
+                    type: object
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '403':
+          $ref: '#/components/responses/ErrorResponse'
+        '409':
+          $ref: '#/components/responses/ErrorResponse'
+    get:
+      tags: [Inventory]
+      summary: List stock movements
+      parameters:
+        - name: branchId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/MovementType'
+        - name: reason
+          in: query
+          schema:
+            $ref: '#/components/schemas/MovementReason'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/StockMovement'
+                  meta:
+                    $ref: '#/components/schemas/PageMeta'
+        '403':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/transfers:
+    post:
+      tags: [Inventory]
+      summary: Transfer stock between branches
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/TransferResult'
+                  meta:
+                    type: object
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '403':
+          $ref: '#/components/responses/ErrorResponse'
+        '409':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/dashboard/overview:
+    get:
+      tags: [Dashboard]
+      summary: Dashboard overview
+      parameters:
+        - name: branchId
+          in: query
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/DashboardOverview'
+                  meta:
+                    type: object
+        '403':
+          $ref: '#/components/responses/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    ErrorResponse:
+      description: Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          $ref: '#/components/schemas/ErrorDetail'
+    ErrorDetail:
+      type: object
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: Validation failed
+        details:
+          type: array
+          items:
+            type: string
+    PageMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        size:
+          type: integer
+        totalItems:
+          type: integer
+        totalPages:
+          type: integer
+    RoleName:
+      type: string
+      enum: [ADMIN, MANAGER, STAFF]
+    UnitOfMeasure:
+      type: string
+      enum: [UN, KG, L, M]
+    MovementType:
+      type: string
+      enum: [IN, OUT, ADJUSTMENT, TRANSFER]
+    MovementReason:
+      type: string
+      enum:
+        - PURCHASE
+        - SALE
+        - LOSS
+        - RETURN
+        - ADJUSTMENT_IN
+        - ADJUSTMENT_OUT
+        - TRANSFER_IN
+        - TRANSFER_OUT
+
+    AuthLoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    AuthRefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+    AuthLogoutRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+    AuthLoginData:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresInSeconds:
+          type: integer
+        user:
+          $ref: '#/components/schemas/User'
+        tenant:
+          $ref: '#/components/schemas/Tenant'
+        branches:
+          type: array
+          items:
+            $ref: '#/components/schemas/BranchSummary'
+    AuthRefreshData:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresInSeconds:
+          type: integer
+
+    TenantCreateRequest:
+      type: object
+      required: [name, slug]
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+    TenantBootstrapRequest:
+      type: object
+      required: [tenant, admin, branch]
+      properties:
+        tenant:
+          $ref: '#/components/schemas/TenantCreateRequest'
+        admin:
+          $ref: '#/components/schemas/UserCreateRequest'
+        branch:
+          $ref: '#/components/schemas/BranchCreateRequest'
+    TenantBootstrapData:
+      type: object
+      properties:
+        tenant:
+          $ref: '#/components/schemas/Tenant'
+        adminUser:
+          $ref: '#/components/schemas/User'
+        branch:
+          $ref: '#/components/schemas/Branch'
+    Tenant:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        slug:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    UserCreateRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    RolesUpdateRequest:
+      type: object
+      required: [roles]
+      properties:
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoleName'
+    BranchesUpdateRequest:
+      type: object
+      required: [branchIds]
+      properties:
+        branchIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+    ActiveRequest:
+      type: object
+      required: [isActive]
+      properties:
+        isActive:
+          type: boolean
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        tenantId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        isActive:
+          type: boolean
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoleName'
+        branchIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+        createdAt:
+          type: string
+          format: date-time
+
+    BranchCreateRequest:
+      type: object
+      required: [name, code]
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+        address:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        managerName:
+          type: string
+          nullable: true
+    Branch:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        tenantId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        code:
+          type: string
+        address:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        managerName:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    BranchSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        code:
+          type: string
+
+    CategoryCreateRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        tenantId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ProductCreateRequest:
+      type: object
+      required: [name, sku, costPrice, salePrice]
+      properties:
+        categoryId:
+          type: integer
+          format: int64
+          nullable: true
+        name:
+          type: string
+        sku:
+          type: string
+        description:
+          type: string
+          nullable: true
+        barcode:
+          type: string
+          nullable: true
+        unitOfMeasure:
+          $ref: '#/components/schemas/UnitOfMeasure'
+        imageUrl:
+          type: string
+          nullable: true
+        costPrice:
+          type: number
+          format: double
+        salePrice:
+          type: number
+          format: double
+        minStock:
+          type: integer
+          default: 0
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        tenantId:
+          type: integer
+          format: int64
+        categoryId:
+          type: integer
+          format: int64
+          nullable: true
+        name:
+          type: string
+        sku:
+          type: string
+        description:
+          type: string
+          nullable: true
+        barcode:
+          type: string
+          nullable: true
+        unitOfMeasure:
+          $ref: '#/components/schemas/UnitOfMeasure'
+        imageUrl:
+          type: string
+          nullable: true
+        costPrice:
+          type: number
+          format: double
+        salePrice:
+          type: number
+          format: double
+        minStock:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    MovementCreateRequest:
+      type: object
+      required: [productId, type, reason, quantity]
+      properties:
+        productId:
+          type: integer
+          format: int64
+        type:
+          $ref: '#/components/schemas/MovementType'
+        reason:
+          $ref: '#/components/schemas/MovementReason'
+        quantity:
+          type: integer
+        note:
+          type: string
+          nullable: true
+    StockMovement:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        tenantId:
+          type: integer
+          format: int64
+        branchId:
+          type: integer
+          format: int64
+        productId:
+          type: integer
+          format: int64
+        type:
+          $ref: '#/components/schemas/MovementType'
+        reason:
+          $ref: '#/components/schemas/MovementReason'
+        quantity:
+          type: integer
+        note:
+          type: string
+          nullable: true
+        createdByUserId:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+
+    StockItem:
+      type: object
+      properties:
+        tenantId:
+          type: integer
+          format: int64
+        branchId:
+          type: integer
+          format: int64
+        productId:
+          type: integer
+          format: int64
+        productName:
+          type: string
+        productSku:
+          type: string
+        quantity:
+          type: integer
+        minStock:
+          type: integer
+        version:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+
+    TransferRequest:
+      type: object
+      required: [productId, quantity, sourceBranchId, destinationBranchId]
+      properties:
+        productId:
+          type: integer
+          format: int64
+        quantity:
+          type: integer
+        sourceBranchId:
+          type: integer
+          format: int64
+        destinationBranchId:
+          type: integer
+          format: int64
+        note:
+          type: string
+          nullable: true
+    TransferResult:
+      type: object
+      properties:
+        sourceMovementId:
+          type: integer
+          format: int64
+        destinationMovementId:
+          type: integer
+          format: int64
+
+    DashboardOverview:
+      type: object
+      properties:
+        branchId:
+          type: integer
+          format: int64
+          nullable: true
+        totalActiveProducts:
+          type: integer
+        lowStockItemsCount:
+          type: integer
+        lastMovements:
+          type: array
+          items:
+            $ref: '#/components/schemas/StockMovement'
+        topProducts:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopProduct'
+    TopProduct:
+      type: object
+      properties:
+        productId:
+          type: integer
+          format: int64
+        productName:
+          type: string
+        totalMovements:
+          type: integer

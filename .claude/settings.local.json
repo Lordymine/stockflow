@@ -22,7 +22,10 @@
       "Bash(./mvnw:*)",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "Bash(mvn clean compile:*)"
+      "Bash(mvn clean compile:*)",
+      "Bash(git add:*)",
+      "Bash(mvn test:*)",
+      "Bash(xargs cat:*)"
     ]
   }
 }

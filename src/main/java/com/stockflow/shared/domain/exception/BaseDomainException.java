@@ -1,38 +1,48 @@
 package com.stockflow.shared.domain.exception;
 
 /**
- * Exceção base de domínio usando Java 21 Sealed Classes.
+ * Base exception class for all domain-related exceptions.
  *
- * Sealed classes permitem:
- * - Restrição de subclasses em tempo de compilação
- * - Pattern matching exhaustivo em switch expressions
- * - Melhor design de APIs com hierarquias conhecidas
+ * <p>All custom exceptions should extend this class to maintain
+ * consistency across the domain layer and provide standard error handling.</p>
  *
- * Todas as subclasses permitidas devem estar no mesmo módulo (package no nosso caso).
+ * <p>Domain exceptions represent business rule violations or invariant breaches
+ * that occur during the execution of use cases.</p>
  */
-public sealed abstract class BaseDomainException extends RuntimeException
-    permits NotFoundException, ConflictException, BadRequestException, ValidationException, ForbiddenException {
+public abstract class BaseDomainException extends RuntimeException {
 
-    private final String code;
-    private final Object[] params;
+    private final String errorCode;
 
-    protected BaseDomainException(String message, String code) {
+    /**
+     * Constructs a new domain exception with the specified error code and message.
+     *
+     * @param errorCode the error code that identifies this type of error
+     * @param message   the detail message explaining the error
+     */
+    protected BaseDomainException(String errorCode, String message) {
         super(message);
-        this.code = code;
-        this.params = null;
+        this.errorCode = errorCode;
     }
 
-    protected BaseDomainException(String message, String code, Object... params) {
-        super(message);
-        this.code = code;
-        this.params = params;
+    /**
+     * Constructs a new domain exception with the specified error code, message, and cause.
+     *
+     * @param errorCode the error code that identifies this type of error
+     * @param message   the detail message explaining the error
+     * @param cause     the cause of the exception
+     */
+    protected BaseDomainException(String errorCode, String message, Throwable cause) {
+        super(message, cause);
+        this.errorCode = errorCode;
     }
 
-    public String getCode() {
-        return code;
-    }
-
-    public Object[] getParams() {
-        return params;
+    /**
+     * Returns the error code associated with this exception.
+     * Error codes are used to identify specific error types across the API.
+     *
+     * @return the error code
+     */
+    public String getErrorCode() {
+        return errorCode;
     }
 }

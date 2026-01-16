@@ -1,50 +1,87 @@
 package com.stockflow.shared.application.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.data.domain.Sort;
 
 /**
- * DTO para requisições com busca e paginação
+ * Search request DTO that extends pagination with search functionality.
+ *
+ * <p>Provides search parameters for endpoints that support filtering:</p>
+ * <ul>
+ *   <li>All pagination parameters from PageRequestDTO</li>
+ *   <li>search: text search term for filtering results</li>
+ * </ul>
+ *
+ * <p>Example:</p>
+ * <pre>
+ * {
+ *   "page": 0,
+ *   "size": 20,
+ *   "sort": "name",
+ *   "direction": "ASC",
+ *   "search": "product name"
+ * }
+ * </pre>
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class SearchRequestDTO {
+@Schema(description = "Search and pagination parameters")
+public class SearchRequestDTO extends PageRequestDTO {
+
+    @Schema(description = "Search term for filtering results", example = "product name")
     private String search;
 
-    @Builder.Default
-    private int page = 0;
-
-    @Builder.Default
-    private int size = 20;
-
-    private String sortBy;
-
-    private SortDirection sortDirection;
-
-    public enum SortDirection {
-        ASC, DESC
+    public SearchRequestDTO() {
+        super();
     }
 
-    public Pageable toPageable() {
-        if (size > 100) size = 100;
-        if (size < 1) size = 20;
+    public SearchRequestDTO(int page, int size, String sort, Sort.Direction direction, String search) {
+        super(page, size, sort, direction);
+        this.search = search;
+    }
 
-        if (sortBy != null) {
-            Sort.Direction direction = sortDirection == SortDirection.DESC
-                ? Sort.Direction.DESC
-                : Sort.Direction.ASC;
-            return PageRequest.of(page, size, Sort.by(direction, sortBy));
-        }
+    /**
+     * Creates a SearchRequestDTO with search term.
+     *
+     * @param search the search term
+     * @return a new SearchRequestDTO
+     */
+    public static SearchRequestDTO of(String search) {
+        SearchRequestDTO dto = new SearchRequestDTO();
+        dto.setSearch(search);
+        return dto;
+    }
 
-        return PageRequest.of(page, size);
+    /**
+     * Creates a SearchRequestDTO with pagination and search.
+     *
+     * @param page   page number
+     * @param size   page size
+     * @param search the search term
+     * @return a new SearchRequestDTO
+     */
+    public static SearchRequestDTO of(int page, int size, String search) {
+        return new SearchRequestDTO(page, size, "createdAt", Sort.Direction.DESC, search);
+    }
+
+    public String getSearch() {
+        return search;
+    }
+
+    public void setSearch(String search) {
+        this.search = search;
+    }
+
+    /**
+     * Checks if a search term is present.
+     *
+     * @return true if search is not null and not empty
+     */
+    public boolean hasSearch() {
+        return search != null && !search.trim().isEmpty();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("SearchRequestDTO{page=%d, size=%d, sort='%s', direction=%s, search='%s'}",
+            getPage(), getSize(), getSort(), getDirection(), search);
     }
 }

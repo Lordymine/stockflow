@@ -1,139 +1,121 @@
 package com.stockflow.shared.application.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import org.springframework.data.domain.Page;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
 
 /**
- * Wrapper para respostas paginadas usando Java 21 Records.
+ * Standard pagination response wrapper.
  *
- * Records aninhados (Meta) são perfeitos para DTOs imutáveis.
- * Factory methods fornecem API fluente para criação.
+ * <p>All list endpoints should return data wrapped in this structure
+ * to provide consistent pagination metadata.</p>
+ *
+ * <p>Example:</p>
+ * <pre>
+ * {
+ *   "data": [ ... ],
+ *   "total": 100,
+ *   "page": 1,
+ *   "size": 20,
+ *   "totalPages": 5
+ * }
+ * </pre>
+ *
+ * @param <T> the type of data in the list
  */
+@Schema(description = "Paginated response wrapper")
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record PaginationResponse<T>(
-    List<T> data,
-    Meta meta
-) {
+public class PaginationResponse<T> {
+
+    @Schema(description = "List of items")
+    private final List<T> data;
+
+    @Schema(description = "Total number of items", example = "100")
+    private final long total;
+
+    @Schema(description = "Current page number (0-indexed)", example = "0")
+    private final int page;
+
+    @Schema(description = "Page size", example = "20")
+    private final int size;
+
+    @Schema(description = "Total number of pages", example = "5")
+    private final int totalPages;
+
     /**
-     * Converte um Page do Spring Data para PaginationResponse.
+     * Creates a new pagination response.
+     *
+     * @param data       the list of items
+     * @param total      total number of items
+     * @param page       current page number
+     * @param size       page size
+     * @param totalPages total number of pages
      */
-    public static <T> PaginationResponse<T> fromPage(Page<T> page) {
+    public PaginationResponse(List<T> data, long total, int page, int size, int totalPages) {
+        this.data = data;
+        this.total = total;
+        this.page = page;
+        this.size = size;
+        this.totalPages = totalPages;
+    }
+
+    /**
+     * Creates a pagination response from a Spring Data Page.
+     *
+     * @param page the Spring Data Page object
+     * @param <T>  the type of data
+     * @return a new PaginationResponse instance
+     */
+    public static <T> PaginationResponse<T> of(org.springframework.data.domain.Page<T> page) {
         return new PaginationResponse<>(
             page.getContent(),
-            new Meta(
-                page.getNumber(),
-                page.getSize(),
-                page.getTotalElements(),
-                page.getTotalPages(),
-                page.isFirst(),
-                page.isLast(),
-                page.isEmpty()
-            )
+            page.getTotalElements(),
+            page.getNumber(),
+            page.getSize(),
+            page.getTotalPages()
         );
     }
 
     /**
-     * Cria uma resposta vazia.
+     * Creates an empty pagination response.
+     *
+     * @param page requested page number
+     * @param size requested page size
+     * @param <T>  the type of data
+     * @return a new PaginationResponse instance with empty data
      */
-    public static <T> PaginationResponse<T> empty() {
-        return new PaginationResponse<>(
-            List.of(),
-            new Meta(0, 0, 0, 0, true, true, true)
-        );
+    public static <T> PaginationResponse<T> empty(int page, int size) {
+        return new PaginationResponse<>(List.of(), 0, page, size, 0);
     }
 
-    /**
-     * Record aninhado para metadados de paginação.
-     * Records aninhados são mais limpos do que classes estáticas.
-     */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record Meta(
-        int page,
-        int size,
-        long totalElements,
-        int totalPages,
-        boolean first,
-        boolean last,
-        boolean empty
-    ) {
-        // Builder para compatibilidade
-        public static MetaBuilder builder() {
-            return new MetaBuilder();
-        }
-
-        public static class MetaBuilder {
-            private int page;
-            private int size;
-            private long totalElements;
-            private int totalPages;
-            private boolean first;
-            private boolean last;
-            private boolean empty;
-
-            public MetaBuilder page(int page) {
-                this.page = page;
-                return this;
-            }
-
-            public MetaBuilder size(int size) {
-                this.size = size;
-                return this;
-            }
-
-            public MetaBuilder totalElements(long totalElements) {
-                this.totalElements = totalElements;
-                return this;
-            }
-
-            public MetaBuilder totalPages(int totalPages) {
-                this.totalPages = totalPages;
-                return this;
-            }
-
-            public MetaBuilder first(boolean first) {
-                this.first = first;
-                return this;
-            }
-
-            public MetaBuilder last(boolean last) {
-                this.last = last;
-                return this;
-            }
-
-            public MetaBuilder empty(boolean empty) {
-                this.empty = empty;
-                return this;
-            }
-
-            public Meta build() {
-                return new Meta(page, size, totalElements, totalPages, first, last, empty);
-            }
-        }
+    public List<T> getData() {
+        return data;
     }
 
-    // Builder para compatibilidade
-    public static <T> PaginationResponseBuilder<T> builder() {
-        return new PaginationResponseBuilder<>();
+    public long getTotal() {
+        return total;
     }
 
-    public static class PaginationResponseBuilder<T> {
-        private List<T> data;
-        private Meta meta;
+    public int getPage() {
+        return page;
+    }
 
-        public PaginationResponseBuilder<T> data(List<T> data) {
-            this.data = data;
-            return this;
-        }
+    public int getSize() {
+        return size;
+    }
 
-        public PaginationResponseBuilder<T> meta(Meta meta) {
-            this.meta = meta;
-            return this;
-        }
+    public int getTotalPages() {
+        return totalPages;
+    }
 
-        public PaginationResponse<T> build() {
-            return new PaginationResponse<>(data, meta);
-        }
+    @Schema(description = "Indicates if there is a next page", example = "true")
+    public boolean isHasNext() {
+        return page < totalPages - 1;
+    }
+
+    @Schema(description = "Indicates if there is a previous page", example = "false")
+    public boolean isHasPrevious() {
+        return page > 0;
     }
 }
