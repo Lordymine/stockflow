@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(documentation-generation:architecture-decision-records)",
+      "Skill(documentation-generation:architecture-decision-records:*)",
+      "Skill(database-migrations:sql-migrations)",
+      "Skill(database-migrations:sql-migrations:*)",
+      "Bash(ls:*)",
+      "Bash(dir:*)",
+      "Read(//c/**)",
+      "Bash(done:*)",
+      "Bash(java:*)",
+      "Bash(where:*)",
+      "Bash(\"/c/Users/kocar/AppData/Local/Programs/Eclipse Adoptium/jdk-21.0.9.10-hotspot/bin/java.exe\" -version)",
+      "Bash(./mvnw.cmd --version)",
+      "Bash(curl:*)",
+      "Bash(./mvnw.cmd:*)",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "mcp__plugin_context7_context7__query-docs",
+      "Bash(./mvnw clean test)",
+      "Bash(./mvnw test:*)",
+      "Bash(./mvnw:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(mvn clean compile:*)"
+    ]
+  }
+}
