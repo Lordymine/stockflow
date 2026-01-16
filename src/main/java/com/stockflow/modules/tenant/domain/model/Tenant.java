@@ -2,10 +2,10 @@ package com.stockflow.modules.tenant.domain.model;
 
 import com.stockflow.shared.domain.exception.ValidationException;
 import com.stockflow.shared.domain.model.BaseEntity;
-import jakarta.persistence.AttributeOverride;
-import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 import java.util.Objects;
@@ -24,15 +24,24 @@ import java.util.Objects;
  */
 @Entity
 @Table(name = "tenants")
-@AttributeOverrides({
-    @AttributeOverride(name = "tenantId", column = @Column(name = "tenant_id", insertable = false, updatable = false))
-})
 public class Tenant extends BaseEntity {
 
-    @Override
-    public Long getTenantId() {
-        // For Tenant entity, return its own ID as the tenant ID
-        return getId();
+    /**
+     * Automatically sets tenant_id to equal id before persisting.
+     * For root entities like Tenant, tenant_id references itself.
+     */
+    @PrePersist
+    protected void onCreate() {
+        if (getTenantId() == null) {
+            setTenantId(getId());
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        if (getTenantId() == null) {
+            setTenantId(getId());
+        }
     }
 
     /**
