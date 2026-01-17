@@ -1,8 +1,8 @@
 # Backend - Fase 3 Catalogo
 
-## CAT-01 CRUD categorias
+## CAT-01 CRUD categorias ✅
 DoD:
-- Endpoints com validacao e paginacao.
+- ✅ Endpoints com validacao e paginacao.
 
 ## CAT-02 CRUD produtos
 DoD:
