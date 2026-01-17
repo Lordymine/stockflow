@@ -493,4 +493,233 @@ class ProductControllerIntegrationTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    @WithMockUser(roles = {"ADMIN"})
+    @DisplayName("GET /api/catalog/products/search - Should search products by name")
+    void testSearchProducts_ByName() throws Exception {
+        // Arrange - Create products
+        ProductRequest request1 = new ProductRequest(
+            "Laptop Dell XYZ",
+            "LAPTOP-001",
+            "Powerful laptop",
+            null,
+            "UN",
+            null,
+            new BigDecimal("2000.00"),
+            new BigDecimal("2500.00"),
+            5,
+            null
+        );
+
+        ProductRequest request2 = new ProductRequest(
+            "Mouse Logitech",
+            "MOUSE-001",
+            "Wireless mouse",
+            null,
+            "UN",
+            null,
+            new BigDecimal("50.00"),
+            new BigDecimal("80.00"),
+            20,
+            null
+        );
+
+        mockMvc.perform(post("/api/catalog/products")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request1)));
+
+        mockMvc.perform(post("/api/catalog/products")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request2)));
+
+        // Act & Assert - Search for "laptop"
+        mockMvc.perform(get("/api/catalog/products/search")
+                .param("search", "laptop"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].name").value("Laptop Dell XYZ"))
+                .andExpect(jsonPath("$.content[0].sku").value("LAPTOP-001"));
+    }
+
+    @Test
+    @WithMockUser(roles = {"ADMIN"})
+    @DisplayName("GET /api/catalog/products/search - Should filter by category")
+    void testSearchProducts_ByCategory() throws Exception {
+        // Arrange - Create products in category
+        ProductRequest request1 = new ProductRequest(
+            "Product 1",
+            "PROD-001",
+            "Description 1",
+            null,
+            "UN",
+            null,
+            new BigDecimal("100.00"),
+            new BigDecimal("150.00"),
+            10,
+            testCategoryId
+        );
+
+        ProductRequest request2 = new ProductRequest(
+            "Product 2",
+            "PROD-002",
+            "Description 2",
+            null,
+            "UN",
+            null,
+            new BigDecimal("200.00"),
+            new BigDecimal("250.00"),
+            5,
+            null
+        );
+
+        mockMvc.perform(post("/api/catalog/products")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request1)));
+
+        mockMvc.perform(post("/api/catalog/products")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request2)));
+
+        // Act & Assert - Filter by category
+        mockMvc.perform(get("/api/catalog/products/search")
+                .param("categoryId", String.valueOf(testCategoryId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].categoryId").value(testCategoryId));
+    }
+
+    @Test
+    @WithMockUser(roles = {"ADMIN"})
+    @DisplayName("GET /api/catalog/products/search - Should filter by price range")
+    void testSearchProducts_ByPriceRange() throws Exception {
+        // Arrange - Create products with different prices
+        ProductRequest request1 = new ProductRequest(
+            "Cheap Product",
+            "CHEAP-001",
+            "Low cost product",
+            null,
+            "UN",
+            null,
+            new BigDecimal("50.00"),
+            new BigDecimal("100.00"),
+            10,
+            null
+        );
+
+        ProductRequest request2 = new ProductRequest(
+            "Expensive Product",
+            "EXP-001",
+            "High cost product",
+            null,
+            "UN",
+            null,
+            new BigDecimal("500.00"),
+            new BigDecimal("800.00"),
+            5,
+            null
+        );
+
+        mockMvc.perform(post("/api/catalog/products")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request1)));
+
+        mockMvc.perform(post("/api/catalog/products")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request2)));
+
+        // Act & Assert - Filter by price range
+        mockMvc.perform(get("/api/catalog/products/search")
+                .param("minPrice", "150.00")
+                .param("maxPrice", "1000.00"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].name").value("Expensive Product"));
+    }
+
+    @Test
+    @WithMockUser(roles = {"ADMIN"})
+    @DisplayName("GET /api/catalog/products/search - Should sort by price descending")
+    void testSearchProducts_SortByPriceDescending() throws Exception {
+        // Arrange - Create products
+        for (int i = 1; i <= 3; i++) {
+            ProductRequest request = new ProductRequest(
+                "Product " + i,
+                "PROD-" + String.format("%03d", i),
+                "Description " + i,
+                null,
+                "UN",
+                null,
+                new BigDecimal(String.valueOf(i * 100.00)),
+                new BigDecimal(String.valueOf(i * 150.00)),
+                10,
+                null
+            );
+            mockMvc.perform(post("/api/catalog/products")
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+        }
+
+        // Act & Assert - Sort by price descending
+        mockMvc.perform(get("/api/catalog/products/search")
+                .param("sortBy", "salePrice")
+                .param("sortOrder", "DESC"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content", hasSize(3)))
+                .andExpect(jsonPath("$.content[0].salePrice").value(450.00))
+                .andExpect(jsonPath("$.content[1].salePrice").value(300.00))
+                .andExpect(jsonPath("$.content[2].salePrice").value(150.00));
+    }
+
+    @Test
+    @WithMockUser(roles = {"ADMIN"})
+    @DisplayName("GET /api/catalog/products/search - Should filter only active products")
+    void testSearchProducts_OnlyActive() throws Exception {
+        // Arrange - Create active product
+        ProductRequest request = new ProductRequest(
+            "Active Product",
+            "ACTIVE-001",
+            "Active description",
+            null,
+            "UN",
+            null,
+            new BigDecimal("100.00"),
+            new BigDecimal("150.00"),
+            10,
+            null
+        );
+
+        var result = mockMvc.perform(post("/api/catalog/products")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String response = result.getResponse().getContentAsString();
+        Long productId = objectMapper.readTree(response).get("id").asLong();
+
+        // Soft delete one product
+        mockMvc.perform(delete("/api/catalog/products/" + productId)
+                .with(csrf()))
+                .andExpect(status().isNoContent());
+
+        // Act & Assert - Search only active
+        mockMvc.perform(get("/api/catalog/products/search")
+                .param("isActive", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content", hasSize(0)));
+    }
 }

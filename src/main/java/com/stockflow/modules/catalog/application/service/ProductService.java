@@ -60,4 +60,30 @@ public interface ProductService {
      * @return page of products in the category
      */
     Page<ProductResponse> findByCategory(Long categoryId, Pageable pageable);
+
+    /**
+     * Searches products with multiple filters.
+     *
+     * @param search     optional search term (searches in name, sku, description, barcode)
+     * @param categoryId optional category filter
+     * @param minPrice   optional minimum sale price filter
+     * @param maxPrice   optional maximum sale price filter
+     * @param isActive   optional active status filter
+     * @param sortBy     optional sort field (name, salePrice, createdAt, sku)
+     * @param sortOrder  optional sort order (ASC, DESC)
+     * @param page       page number (default 0)
+     * @param size       page size (default 20)
+     * @return page of matching products
+     */
+    Page<ProductResponse> search(
+            String search,
+            Long categoryId,
+            java.math.BigDecimal minPrice,
+            java.math.BigDecimal maxPrice,
+            Boolean isActive,
+            String sortBy,
+            String sortOrder,
+            int page,
+            int size
+    );
 }

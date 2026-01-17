@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+
 /**
  * REST controller for product operations.
  *
@@ -126,5 +128,45 @@ public class ProductController {
             @PathVariable Long id) {
         productService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Searches products with multiple filters.
+     *
+     * @param search     optional search term (searches in name, sku, description, barcode)
+     * @param categoryId optional category filter
+     * @param minPrice   optional minimum sale price filter
+     * @param maxPrice   optional maximum sale price filter
+     * @param isActive   optional active status filter
+     * @param sortBy     optional sort field (name, salePrice, createdAt, sku)
+     * @param sortOrder  optional sort order (ASC, DESC)
+     * @param page       page number (default 0)
+     * @param size       page size (default 20)
+     * @return page of matching products
+     */
+    @GetMapping("/search")
+    @Operation(summary = "Search products", description = "Searches products with multiple filters including search term, category, price range, and active status")
+    public ResponseEntity<Page<ProductResponse>> search(
+            @Parameter(description = "Search term (searches in name, sku, description, barcode)")
+            @RequestParam(required = false) String search,
+            @Parameter(description = "Filter by category ID")
+            @RequestParam(required = false) Long categoryId,
+            @Parameter(description = "Minimum sale price")
+            @RequestParam(required = false) BigDecimal minPrice,
+            @Parameter(description = "Maximum sale price")
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @Parameter(description = "Filter by active status")
+            @RequestParam(required = false) Boolean isActive,
+            @Parameter(description = "Sort field (name, salePrice, createdAt, sku)")
+            @RequestParam(required = false) String sortBy,
+            @Parameter(description = "Sort order (ASC, DESC)")
+            @RequestParam(required = false) String sortOrder,
+            @Parameter(description = "Page number (default 0)")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size (default 20)")
+            @RequestParam(defaultValue = "20") int size) {
+        Page<ProductResponse> response = productService.search(
+                search, categoryId, minPrice, maxPrice, isActive, sortBy, sortOrder, page, size);
+        return ResponseEntity.ok(response);
     }
 }

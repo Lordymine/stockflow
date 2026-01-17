@@ -13,11 +13,14 @@ import com.stockflow.shared.infrastructure.security.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Set;
 
 /**
  * Implementation of product service.
@@ -29,6 +32,9 @@ import java.math.BigDecimal;
 public class ProductServiceImpl implements ProductService {
 
     private static final Logger logger = LoggerFactory.getLogger(ProductServiceImpl.class);
+
+    private static final Set<String> VALID_SORT_FIELDS = Set.of("name", "salePrice", "createdAt", "sku");
+    private static final Set<String> VALID_SORT_ORDERS = Set.of("ASC", "DESC");
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
@@ -206,5 +212,39 @@ public class ProductServiceImpl implements ProductService {
                     "Cost price cannot be greater than sale price");
             }
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> search(String search, Long categoryId, BigDecimal minPrice,
+                                        BigDecimal maxPrice, Boolean isActive, String sortBy,
+                                        String sortOrder, int page, int size) {
+        logger.debug("Searching products with filters - search: {}, categoryId: {}, minPrice: {}, maxPrice: {}, isActive: {}, sortBy: {}, sortOrder: {}, page: {}, size: {}",
+                search, categoryId, minPrice, maxPrice, isActive, sortBy, sortOrder, page, size);
+
+        Long tenantId = TenantContext.getTenantId();
+
+        // Validate and default sortBy
+        String validSortBy = VALID_SORT_FIELDS.contains(sortBy) ? sortBy : "name";
+
+        // Validate and default sortOrder
+        Sort.Direction direction = VALID_SORT_ORDERS.contains(sortOrder)
+                ? Sort.Direction.fromString(sortOrder)
+                : Sort.Direction.ASC;
+
+        // Validate category if provided
+        validateCategoryIfExists(categoryId, tenantId);
+
+        // Create Pageable with Sort
+        Sort sort = Sort.by(direction, validSortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        // Execute search
+        Page<Product> products = productRepository.searchProducts(
+                search, categoryId, minPrice, maxPrice, isActive, tenantId, pageable);
+
+        logger.debug("Found {} products matching search criteria", products.getTotalElements());
+
+        return products.map(productMapper::toResponse);
     }
 }
