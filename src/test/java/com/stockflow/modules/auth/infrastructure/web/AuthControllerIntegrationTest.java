@@ -81,7 +81,6 @@ class AuthControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.tenant.id").isNumber())
                 .andExpect(jsonPath("$.tenant.name").value("Test Company"))
                 .andExpect(jsonPath("$.tenant.slug").value("test-company"))

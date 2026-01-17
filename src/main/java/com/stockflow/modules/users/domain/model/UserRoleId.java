@@ -1,46 +1,42 @@
 package com.stockflow.modules.users.domain.model;
 
 import jakarta.persistence.*;
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
- * UserRole entity representing the junction table between users and roles.
+ * Primary key class for UserRole entity.
  *
- * <p>This is a many-to-many relationship table that associates users with their roles.
- * Uses a composite primary key (user_id, role_id) without surrogate key.</p>
- *
- * <p><strong>NOTE:</strong> This entity is kept for explicit repository queries and management.
- * The User entity uses standard @ManyToMany mapping for relationship management.</p>
+ * <p>This class represents the composite primary key for the user_roles junction table,
+ * which has a primary key of (user_id, role_id).</p>
  */
-@Entity
-@Table(name = "user_roles")
-@IdClass(UserRoleId.class)
-public class UserRole {
+@Embeddable
+public class UserRoleId implements Serializable {
 
-    @Id
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Id
     @Column(name = "role_id", nullable = false)
     private Long roleId;
 
     /**
      * Default constructor for JPA.
      */
-    protected UserRole() {
+    public UserRoleId() {
     }
 
     /**
-     * Constructor for creating a user-role association.
+     * Constructor for creating a composite key.
      *
      * @param userId  the user ID
      * @param roleId  the role ID
      */
-    public UserRole(Long userId, Long roleId) {
+    public UserRoleId(Long userId, Long roleId) {
         this.userId = userId;
         this.roleId = roleId;
     }
+
+    // Getters and Setters
 
     public Long getUserId() {
         return userId;
@@ -61,10 +57,10 @@ public class UserRole {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof UserRole)) return false;
-        UserRole userRole = (UserRole) o;
-        return Objects.equals(userId, userRole.userId) &&
-               Objects.equals(roleId, userRole.roleId);
+        if (!(o instanceof UserRoleId)) return false;
+        UserRoleId that = (UserRoleId) o;
+        return Objects.equals(userId, that.userId) &&
+               Objects.equals(roleId, that.roleId);
     }
 
     @Override
@@ -74,6 +70,6 @@ public class UserRole {
 
     @Override
     public String toString() {
-        return String.format("UserRole[userId=%d, roleId=%d]", userId, roleId);
+        return String.format("UserRoleId[userId=%d, roleId=%d]", userId, roleId);
     }
 }

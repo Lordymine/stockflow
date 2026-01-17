@@ -24,7 +24,7 @@
 |---|---|---|
 | POST /api/v1/auth/login | Publico | Credenciais validas |
 | POST /api/v1/auth/refresh | Publico | Refresh token valido |
-| POST /api/v1/auth/logout | ADMIN, MANAGER, STAFF | Revoga refresh token |
+| POST /api/v1/auth/logout | Publico | Revoga refresh token |
 
 ### Tenants
 | Endpoint | Roles | Observacoes |

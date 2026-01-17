@@ -11,6 +11,7 @@ import com.stockflow.modules.users.domain.repository.UserRepository;
 import com.stockflow.shared.application.dto.PaginationResponse;
 import com.stockflow.shared.domain.exception.ConflictException;
 import com.stockflow.shared.domain.exception.NotFoundException;
+import com.stockflow.shared.domain.exception.UnauthorizedException;
 import com.stockflow.shared.domain.exception.ValidationException;
 import com.stockflow.shared.infrastructure.security.CustomUserDetails;
 import com.stockflow.shared.infrastructure.security.TenantContext;
@@ -231,7 +232,7 @@ public class UserServiceImpl implements UserService {
 
         // Verify current password
         if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
-            throw new ValidationException("AUTH_INVALID_CREDENTIALS",
+            throw new UnauthorizedException("AUTH_INVALID_CREDENTIALS",
                 "Current password is incorrect");
         }
 

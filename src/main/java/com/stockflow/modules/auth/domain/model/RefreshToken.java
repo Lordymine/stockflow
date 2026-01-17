@@ -31,7 +31,7 @@ public class RefreshToken extends BaseEntity {
 
     /**
      * Hash of the refresh token value.
-     * Never store the raw token, only the BCrypt hash.
+     * Never store the raw token, only a one-way hash.
      */
     @Column(name = "token_hash", nullable = false)
     private String tokenHash;
@@ -61,7 +61,7 @@ public class RefreshToken extends BaseEntity {
      *
      * @param tenantId  the tenant ID
      * @param userId    the user ID
-     * @param tokenHash the BCrypt hash of the token
+     * @param tokenHash the hash of the token
      * @param expiresAt the expiration timestamp
      */
     public RefreshToken(Long tenantId, Long userId, String tokenHash, LocalDateTime expiresAt) {

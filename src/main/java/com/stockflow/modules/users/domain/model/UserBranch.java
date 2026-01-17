@@ -9,19 +9,21 @@ import java.util.Objects;
  * <p>This entity defines which branches a user has access to.
  * Access control is enforced at the service layer using the @BranchAccess annotation.</p>
  *
+ * <p><strong>NOTE:</strong> This entity is kept for explicit repository queries and management.
+ * The User entity uses standard @ManyToMany mapping for relationship management.</p>
+ *
  * @see com.stockflow.shared.infrastructure.security.BranchAccess
  */
 @Entity
 @Table(name = "user_branches")
+@IdClass(UserBranchId.class)
 public class UserBranch {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    @Id
     @Column(name = "branch_id", nullable = false)
     private Long branchId;
 
@@ -40,16 +42,6 @@ public class UserBranch {
     public UserBranch(Long userId, Long branchId) {
         this.userId = userId;
         this.branchId = branchId;
-    }
-
-    // Getters and Setters
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public Long getUserId() {
@@ -84,6 +76,6 @@ public class UserBranch {
 
     @Override
     public String toString() {
-        return String.format("UserBranch[id=%d, userId=%d, branchId=%d]", id, userId, branchId);
+        return String.format("UserBranch[userId=%d, branchId=%d]", userId, branchId);
     }
 }

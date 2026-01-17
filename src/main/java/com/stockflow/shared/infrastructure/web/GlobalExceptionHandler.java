@@ -99,6 +99,22 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles UnauthorizedException.
+     */
+    @ExceptionHandler(UnauthorizedException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ResponseEntity<ApiErrorResponse> handleUnauthorizedException(
+        UnauthorizedException ex,
+        WebRequest request
+    ) {
+        ApiErrorResponse response = ApiErrorResponse.of(
+            ex.getErrorCode(),
+            ex.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    /**
      * Handles ValidationException.
      */
     @ExceptionHandler(ValidationException.class)

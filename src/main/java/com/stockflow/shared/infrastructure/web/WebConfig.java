@@ -1,5 +1,9 @@
 package com.stockflow.shared.infrastructure.web;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -7,10 +11,26 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 /**
  * Web configuration for the application.
  *
- * <p>Configures CORS settings and other web-related configurations.</p>
+ * <p>Configures CORS settings, Jackson ObjectMapper, and other web-related configurations.</p>
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
+
+    /**
+     * Configures the Jackson ObjectMapper for JSON serialization.
+     *
+     * <p>Enables support for Java 8 date/time types (LocalDateTime, etc.)
+     * and configures date formatting.</p>
+     *
+     * @return the configured ObjectMapper
+     */
+    @Bean
+    public ObjectMapper objectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return mapper;
+    }
 
     /**
      * Configures CORS mappings for the application.

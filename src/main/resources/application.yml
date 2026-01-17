@@ -5,6 +5,11 @@ spring:
   profiles:
     active: dev
 
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/stockflow}
     username: ${SPRING_DATASOURCE_USERNAME:root}

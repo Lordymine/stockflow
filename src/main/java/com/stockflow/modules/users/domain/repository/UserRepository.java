@@ -29,6 +29,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmailAndTenantId(@Param("email") String email, @Param("tenantId") Long tenantId);
 
     /**
+     * Finds a user by email across all tenants.
+     * Used during login when tenant context is not yet available.
+     *
+     * @param email the user's email
+     * @return Optional containing the user if found
+     */
+    @Query("SELECT u FROM User u WHERE u.email = :email AND u.isActive = true")
+    Optional<User> findByEmail(@Param("email") String email);
+
+    /**
      * Checks if a user with the given email exists in the tenant.
      *
      * @param email    the email to check

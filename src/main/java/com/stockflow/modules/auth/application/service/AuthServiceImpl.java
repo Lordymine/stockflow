@@ -11,20 +11,26 @@ import com.stockflow.modules.users.domain.model.User;
 import com.stockflow.modules.users.domain.repository.RoleRepository;
 import com.stockflow.modules.users.domain.repository.UserRepository;
 import com.stockflow.shared.domain.exception.ConflictException;
+import com.stockflow.shared.domain.exception.ForbiddenException;
+import com.stockflow.shared.domain.exception.UnauthorizedException;
 import com.stockflow.shared.domain.exception.ValidationException;
 import com.stockflow.shared.infrastructure.security.JwtService;
+import com.stockflow.shared.infrastructure.security.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.HexFormat;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -66,23 +72,32 @@ public class AuthServiceImpl implements AuthService {
     public LoginResponse login(LoginRequest request) {
         logger.info("Login attempt for email: {}", request.email());
 
-        // Authenticate with Spring Security
-        Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(
-                request.email(),
-                request.password()
-            )
-        );
-
-        // Load user from database
-        Long tenantId = com.stockflow.shared.infrastructure.security.TenantContext.getTenantId();
-        User user = userRepository.findByEmailAndTenantId(request.email(), tenantId)
-            .orElseThrow(() -> new ValidationException("AUTH_INVALID_CREDENTIALS",
+        // Load user from database FIRST to get tenant ID
+        // This is necessary because authentication needs tenant context
+        User user = userRepository.findByEmail(request.email())
+            .orElseThrow(() -> new UnauthorizedException("AUTH_INVALID_CREDENTIALS",
                 "Invalid email or password"));
 
         if (!user.isActive()) {
-            throw new ValidationException("AUTH_INVALID_CREDENTIALS",
+            throw new UnauthorizedException("AUTH_INVALID_CREDENTIALS",
                 "User account is inactive");
+        }
+
+        // Set tenant context BEFORE authentication so UserDetailsService works
+        Long tenantId = user.getTenantId();
+        TenantContext.setTenantId(tenantId);
+
+        // Now authenticate with Spring Security
+        try {
+            authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                    request.email(),
+                    request.password()
+                )
+            );
+        } catch (AuthenticationException ex) {
+            throw new UnauthorizedException("AUTH_INVALID_CREDENTIALS",
+                "Invalid email or password");
         }
 
         // Generate tokens
@@ -113,7 +128,7 @@ public class AuthServiceImpl implements AuthService {
 
         // Validate token
         if (!jwtService.validateToken(request.refreshToken())) {
-            throw new ValidationException("AUTH_REFRESH_TOKEN_INVALID",
+            throw new UnauthorizedException("AUTH_REFRESH_TOKEN_INVALID",
                 "Invalid refresh token");
         }
 
@@ -125,21 +140,21 @@ public class AuthServiceImpl implements AuthService {
         String tokenHash = hashToken(request.refreshToken());
         RefreshToken refreshTokenEntity = refreshTokenRepository
             .findValidByTokenHash(tokenHash, LocalDateTime.now())
-            .orElseThrow(() -> new ValidationException("AUTH_REFRESH_TOKEN_INVALID",
+            .orElseThrow(() -> new UnauthorizedException("AUTH_REFRESH_TOKEN_INVALID",
                 "Refresh token not found or revoked"));
 
         // Load user
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new ValidationException("AUTH_REFRESH_TOKEN_INVALID",
+            .orElseThrow(() -> new UnauthorizedException("AUTH_REFRESH_TOKEN_INVALID",
                 "User not found"));
 
         if (!user.getTenantId().equals(tenantId)) {
-            throw new ValidationException("FORBIDDEN_TENANT_ACCESS",
+            throw new ForbiddenException("FORBIDDEN_TENANT_ACCESS",
                 "Tenant mismatch in refresh token");
         }
 
         if (!user.isActive()) {
-            throw new ValidationException("AUTH_REFRESH_TOKEN_INVALID",
+            throw new UnauthorizedException("AUTH_REFRESH_TOKEN_INVALID",
                 "User account is inactive");
         }
 
@@ -204,7 +219,7 @@ public class AuthServiceImpl implements AuthService {
         logger.info("Created tenant: {} (ID: {})", tenant.getName(), tenant.getId());
 
         // Set tenant context for user creation
-        com.stockflow.shared.infrastructure.security.TenantContext.setTenantId(tenant.getId());
+        TenantContext.setTenantId(tenant.getId());
 
         // Create admin user
         User admin = new User(
@@ -289,8 +304,13 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private String hashToken(String token) {
-        // Use BCrypt to hash the token for storage
-        return passwordEncoder.encode(token);
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
+        }
     }
 
     private List<String> getRoleNames(User user) {

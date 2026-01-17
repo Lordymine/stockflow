@@ -50,7 +50,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         logger.debug("Loading user by email: {}", email);
 
-        // Get tenant ID from context
+        // Get tenant ID from context (set by AuthService before authentication)
         Long tenantId = TenantContext.getTenantId();
         if (tenantId == null) {
             logger.error("No tenant context available when loading user");

@@ -2,6 +2,8 @@ package com.stockflow.modules.users.domain.model;
 
 import com.stockflow.shared.domain.model.BaseEntity;
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 import java.util.Objects;
 
 /**
@@ -9,6 +11,10 @@ import java.util.Objects;
  *
  * <p>Branches are scoped to tenants and users can be granted access to specific branches
  * for access control. All inventory operations are tied to specific branches.</p>
+ *
+ * <p><strong>Soft Delete:</strong> Uses @SQLDelete and @Where annotations for soft delete functionality.
+ * When a branch is "deleted", it's marked as inactive (is_active = false) instead of being removed
+ * from the database. This maintains data integrity and allows for audit trails.</p>
  *
  * <p>Invariants:</p>
  * <ul>
@@ -19,6 +25,8 @@ import java.util.Objects;
  */
 @Entity
 @Table(name = "branches")
+@SQLDelete(sql = "UPDATE branches SET is_active = false WHERE id = ?")
+@Where(clause = "is_active = true")
 public class Branch extends BaseEntity {
 
     /**
@@ -106,10 +114,17 @@ public class Branch extends BaseEntity {
         this.isActive = active != null ? active : false;
     }
 
+    /**
+     * Activates the branch.
+     */
     public void activate() {
         this.isActive = true;
     }
 
+    /**
+     * Deactivates the branch (soft delete).
+     * This will be automatically called when JPA delete() is used due to @SQLDelete annotation.
+     */
     public void deactivate() {
         this.isActive = false;
     }
