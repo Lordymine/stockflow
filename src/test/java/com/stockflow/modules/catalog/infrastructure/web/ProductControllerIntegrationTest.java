@@ -722,4 +722,109 @@ class ProductControllerIntegrationTest {
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content", hasSize(0)));
     }
+
+    @Test
+    @WithMockUser(roles = {"ADMIN"})
+    @DisplayName("PATCH /api/catalog/products/{id}/active - Should deactivate active product")
+    void testToggleActive_DeactivateProduct() throws Exception {
+        // Arrange - Create active product
+        ProductRequest request = new ProductRequest(
+            "Active Product",
+            "ACTIVE-001",
+            "Active description",
+            null,
+            "UN",
+            null,
+            new BigDecimal("100.00"),
+            new BigDecimal("150.00"),
+            10,
+            null
+        );
+
+        var result = mockMvc.perform(post("/api/catalog/products")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String response = result.getResponse().getContentAsString();
+        Long productId = objectMapper.readTree(response).get("id").asLong();
+
+        // Act & Assert - Deactivate product
+        mockMvc.perform(patch("/api/catalog/products/" + productId + "/active")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(productId))
+                .andExpect(jsonPath("$.isActive").value(false));
+    }
+
+    @Test
+    @WithMockUser(roles = {"ADMIN"})
+    @DisplayName("PATCH /api/catalog/products/{id}/active - Should activate inactive product")
+    void testToggleActive_ActivateProduct() throws Exception {
+        // Arrange - Create and then deactivate product
+        ProductRequest request = new ProductRequest(
+            "Inactive Product",
+            "INACTIVE-001",
+            "Inactive description",
+            null,
+            "UN",
+            null,
+            new BigDecimal("100.00"),
+            new BigDecimal("150.00"),
+            10,
+            null
+        );
+
+        var result = mockMvc.perform(post("/api/catalog/products")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String response = result.getResponse().getContentAsString();
+        Long productId = objectMapper.readTree(response).get("id").asLong();
+
+        // Deactivate first
+        mockMvc.perform(patch("/api/catalog/products/" + productId + "/active")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isActive").value(false));
+
+        // Act & Assert - Reactivate product
+        mockMvc.perform(patch("/api/catalog/products/" + productId + "/active")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(productId))
+                .andExpect(jsonPath("$.isActive").value(true));
+    }
+
+    @Test
+    @WithMockUser(roles = {"EMPLOYEE"})
+    @DisplayName("PATCH /api/catalog/products/{id}/active - Should forbid access for non-admin users")
+    void testToggleActive_Forbidden() throws Exception {
+        // Act & Assert
+        mockMvc.perform(patch("/api/catalog/products/1/active")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = {"ADMIN"})
+    @DisplayName("PATCH /api/catalog/products/{id}/active - Should return 404 for non-existent product")
+    void testToggleActive_NotFound() throws Exception {
+        // Act & Assert
+        mockMvc.perform(patch("/api/catalog/products/99999/active")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("PRODUCT_NOT_FOUND"));
+    }
 }

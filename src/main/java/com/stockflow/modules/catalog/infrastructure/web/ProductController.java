@@ -169,4 +169,23 @@ public class ProductController {
                 search, categoryId, minPrice, maxPrice, isActive, sortBy, sortOrder, page, size);
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * Toggles the active status of a product.
+     *
+     * @param id the product ID
+     * @return the updated product
+     */
+    @PatchMapping("/{id}/active")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(
+        summary = "Toggle product active status",
+        description = "Activates or deactivates a product. If active, deactivates it. If inactive, activates it. Requires ADMIN or MANAGER role."
+    )
+    public ResponseEntity<ProductResponse> toggleActive(
+            @Parameter(description = "Product ID", required = true)
+            @PathVariable Long id) {
+        ProductResponse response = productService.toggleActive(id);
+        return ResponseEntity.ok(response);
+    }
 }

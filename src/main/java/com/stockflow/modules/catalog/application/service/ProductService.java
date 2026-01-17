@@ -86,4 +86,12 @@ public interface ProductService {
             int page,
             int size
     );
+
+    /**
+     * Toggles the active status of a product.
+     *
+     * @param productId the product ID
+     * @return the updated product response
+     */
+    ProductResponse toggleActive(Long productId);
 }

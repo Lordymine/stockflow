@@ -247,4 +247,34 @@ public class ProductServiceImpl implements ProductService {
 
         return products.map(productMapper::toResponse);
     }
+
+    @Override
+    @Transactional
+    public ProductResponse toggleActive(Long productId) {
+        logger.info("Toggling active status for product with ID: {}", productId);
+
+        Long tenantId = TenantContext.getTenantId();
+
+        // Find product ensuring it belongs to tenant
+        Product product = productRepository.findByIdAndTenantId(productId, tenantId)
+            .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND",
+                "Product not found with ID: " + productId));
+
+        // Toggle active status
+        if (product.isActive()) {
+            logger.debug("Product {} is active, deactivating", productId);
+            product.deactivate();
+        } else {
+            logger.debug("Product {} is inactive, activating", productId);
+            product.activate();
+        }
+
+        // Save product
+        Product updatedProduct = productRepository.save(product);
+
+        logger.info("Product active status toggled successfully: {} (now active: {})",
+            updatedProduct.getId(), updatedProduct.isActive());
+
+        return productMapper.toResponse(updatedProduct);
+    }
 }
