@@ -9,9 +9,9 @@ DoD:
 - ✅ SKU unico por tenant.
 - ✅ Campos extras e status ativo.
 
-## CAT-03 Busca e filtros
+## CAT-03 Busca e filtros ✅
 DoD:
-- `GET /products?search=&page=&size=` com ordenacao.
+- ✅ `GET /products?search=&page=&size=` com ordenacao.
 
 ## CAT-04 Ativar/desativar produto
 DoD:
