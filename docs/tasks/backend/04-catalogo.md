@@ -4,10 +4,10 @@
 DoD:
 - ✅ Endpoints com validacao e paginacao.
 
-## CAT-02 CRUD produtos
+## CAT-02 CRUD produtos ✅
 DoD:
-- SKU unico por tenant.
-- Campos extras e status ativo.
+- ✅ SKU unico por tenant.
+- ✅ Campos extras e status ativo.
 
 ## CAT-03 Busca e filtros
 DoD:
