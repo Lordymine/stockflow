@@ -2,12 +2,15 @@ package com.stockflow.modules.users.infrastructure.web;
 
 import com.stockflow.modules.users.application.dto.*;
 import com.stockflow.modules.users.application.service.UserService;
+import com.stockflow.shared.application.dto.ActiveRequest;
 import com.stockflow.shared.application.dto.ApiResponse;
-import com.stockflow.shared.application.dto.PaginationResponse;
+import com.stockflow.shared.application.dto.ItemsResponse;
+import com.stockflow.shared.application.dto.PageMeta;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -43,9 +46,9 @@ public class UserController {
     @PostMapping
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(summary = "Create user", description = "Create a new user in the current tenant (ADMIN only)")
-    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
+    public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody CreateUserRequest request) {
         UserResponse response = userService.createUser(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.of(response));
     }
 
     /**
@@ -58,9 +61,9 @@ public class UserController {
     @GetMapping("/{userId}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(summary = "Get user by ID", description = "Retrieve user information (ADMIN only)")
-    public ResponseEntity<UserResponse> getUserById(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable Long userId) {
         UserResponse response = userService.getUserById(userId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.of(response));
     }
 
     /**
@@ -76,7 +79,7 @@ public class UserController {
     @GetMapping
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(summary = "List users", description = "List all users in the current tenant with pagination (ADMIN only)")
-    public ResponseEntity<PaginationResponse<UserResponse>> listUsers(
+    public ResponseEntity<ApiResponse<ItemsResponse<UserResponse>>> listUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "name") String sortBy,
@@ -85,8 +88,10 @@ public class UserController {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        PaginationResponse<UserResponse> response = userService.listUsers(pageable);
-        return ResponseEntity.ok(response);
+        Page<UserResponse> response = userService.listUsers(pageable);
+        return ResponseEntity.ok(
+            ApiResponse.of(new ItemsResponse<>(response.getContent()), PageMeta.of(response))
+        );
     }
 
     /**
@@ -100,12 +105,12 @@ public class UserController {
     @PatchMapping("/{userId}/active")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(summary = "Update user active status", description = "Activate or deactivate a user (ADMIN only)")
-    public ResponseEntity<UserResponse> updateUserActiveStatus(
+    public ResponseEntity<ApiResponse<UserResponse>> updateUserActiveStatus(
             @PathVariable Long userId,
-            @RequestBody(required = true) Boolean isActive) {
+            @Valid @RequestBody ActiveRequest request) {
 
-        UserResponse response = userService.updateUserActiveStatus(userId, isActive);
-        return ResponseEntity.ok(response);
+        UserResponse response = userService.updateUserActiveStatus(userId, request.isActive());
+        return ResponseEntity.ok(ApiResponse.of(response));
     }
 
     /**
@@ -119,12 +124,12 @@ public class UserController {
     @PutMapping("/{userId}/roles")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(summary = "Update user roles", description = "Set the roles for a user (ADMIN only)")
-    public ResponseEntity<UserResponse> updateUserRoles(
+    public ResponseEntity<ApiResponse<UserResponse>> updateUserRoles(
             @PathVariable Long userId,
             @Valid @RequestBody UpdateUserRolesRequest request) {
 
         UserResponse response = userService.updateUserRoles(userId, request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.of(response));
     }
 
     /**
@@ -138,12 +143,12 @@ public class UserController {
     @PutMapping("/{userId}/branches")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(summary = "Update user branches", description = "Set the branches a user can access (ADMIN only)")
-    public ResponseEntity<UserResponse> updateUserBranches(
+    public ResponseEntity<ApiResponse<UserResponse>> updateUserBranches(
             @PathVariable Long userId,
             @Valid @RequestBody UpdateUserBranchesRequest request) {
 
         UserResponse response = userService.updateUserBranches(userId, request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.of(response));
     }
 
     /**

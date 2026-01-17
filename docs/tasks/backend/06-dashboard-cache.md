@@ -2,7 +2,7 @@
 
 ## DASH-01 Indicadores
 DoD:
-- Endpoint `/dashboard/overview` com metrics do PRD.
+- Endpoint `/api/v1/dashboard/overview` com metrics do PRD.
 
 ## DASH-02 Cache Redis
 DoD:

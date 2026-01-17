@@ -1,17 +1,19 @@
 package com.stockflow.modules.inventory.infrastructure.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stockflow.modules.inventory.application.dto.StockMovementRequest;
+import com.stockflow.modules.inventory.application.dto.StockMovementCreateRequest;
 import com.stockflow.modules.inventory.application.dto.TransferStockRequest;
 import com.stockflow.modules.inventory.domain.model.MovementReason;
 import com.stockflow.modules.inventory.domain.model.MovementType;
 import com.stockflow.modules.inventory.domain.repository.BranchProductStockRepository;
 import com.stockflow.modules.inventory.domain.repository.StockMovementRepository;
-import com.stockflow.modules.users.domain.model.Branch;
-import com.stockflow.modules.users.domain.repository.BranchRepository;
+import com.stockflow.modules.branches.domain.model.Branch;
+import com.stockflow.modules.branches.domain.repository.BranchRepository;
+import com.stockflow.modules.tenants.domain.model.Tenant;
+import com.stockflow.modules.tenants.domain.repository.TenantRepository;
 import com.stockflow.modules.users.domain.repository.UserRepository;
-import com.stockflow.shared.infrastructure.security.TenantContext;
-import org.junit.jupiter.api.AfterEach;
+import com.stockflow.shared.security.TestSecurityUtils;
+import com.stockflow.shared.testing.TestcontainersIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,10 +21,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -43,9 +46,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
 @Transactional
-class InventoryControllerIntegrationTest {
+class InventoryControllerIntegrationTest extends TestcontainersIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -63,12 +65,17 @@ class InventoryControllerIntegrationTest {
     private BranchRepository branchRepository;
 
     @Autowired
+    private TenantRepository tenantRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
-    private Long testTenantId = 1L;
+    private Long testTenantId;
     private Long branch1Id;
     private Long branch2Id;
     private Long testProductId;
+    private RequestPostProcessor adminUser;
+    private RequestPostProcessor staffUser;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -78,8 +85,8 @@ class InventoryControllerIntegrationTest {
         branchRepository.deleteAll();
         userRepository.deleteAll();
 
-        // Set tenant context
-        TenantContext.setTenantId(testTenantId);
+        Tenant tenant = tenantRepository.save(new Tenant("Test Tenant", "test-tenant"));
+        testTenantId = tenant.getId();
 
         // Create two test branches
         Branch branch1 = new Branch(testTenantId, "Filial Centro", "CENTRO");
@@ -91,6 +98,9 @@ class InventoryControllerIntegrationTest {
         branch2.setAddress("Rua B, 456");
         branch2 = branchRepository.save(branch2);
         branch2Id = branch2.getId();
+
+        adminUser = TestSecurityUtils.admin(testTenantId, List.of(branch1Id, branch2Id));
+        staffUser = TestSecurityUtils.staff(testTenantId, List.of(branch1Id));
 
         // Create a test product
         String productJson = """
@@ -105,7 +115,8 @@ class InventoryControllerIntegrationTest {
             }
             """;
 
-        var result = mockMvc.perform(post("/api/catalog/products")
+        var result = mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(productJson))
@@ -113,7 +124,7 @@ class InventoryControllerIntegrationTest {
                 .andReturn();
 
         String response = result.getResponse().getContentAsString();
-        testProductId = objectMapper.readTree(response).get("id").asLong();
+        testProductId = objectMapper.readTree(response).get("data").get("id").asLong();
 
         // Initialize stock in both branches
         var stock1 = new com.stockflow.modules.inventory.domain.model.BranchProductStock(
@@ -133,65 +144,55 @@ class InventoryControllerIntegrationTest {
         stockRepository.save(stock2);
     }
 
-    @AfterEach
-    void tearDown() {
-        TenantContext.clear();
-    }
-
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("GET /api/inventory/stock - Should return all stocks with pagination")
-    void testGetAllStock_Success() throws Exception {
+    @DisplayName("GET /api/v1/branches/{branchId}/stock - Should return stock by branch")
+    void testGetStockByBranch_WithPagination_Success() throws Exception {
         // Act & Assert
-        mockMvc.perform(get("/api/inventory/stock")
+        mockMvc.perform(get("/api/v1/branches/" + branch1Id + "/stock")
+                .with(adminUser)
                 .param("page", "0")
                 .param("size", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content", hasSize(2)))
-                .andExpect(jsonPath("$.content[0].branchId").value(branch1Id))
-                .andExpect(jsonPath("$.content[0].productId").value(testProductId))
-                .andExpect(jsonPath("$.content[0].quantity").value(100))
-                .andExpect(jsonPath("$.content[1].branchId").value(branch2Id))
-                .andExpect(jsonPath("$.content[1].productId").value(testProductId))
-                .andExpect(jsonPath("$.content[1].quantity").value(50))
-                .andExpect(jsonPath("$.totalElements").value(2));
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items", hasSize(1)))
+                .andExpect(jsonPath("$.data.items[0].branchId").value(branch1Id))
+                .andExpect(jsonPath("$.data.items[0].productId").value(testProductId))
+                .andExpect(jsonPath("$.data.items[0].quantity").value(100))
+                .andExpect(jsonPath("$.meta.totalItems").value(1));
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("GET /api/inventory/stock/branch/{branchId} - Should return stock by branch")
+    @DisplayName("GET /api/v1/branches/{branchId}/stock - Should return stock by branch")
     void testGetStockByBranch_Success() throws Exception {
         // Act & Assert
-        mockMvc.perform(get("/api/inventory/stock/branch/" + branch1Id))
+        mockMvc.perform(get("/api/v1/branches/" + branch2Id + "/stock")
+                .with(adminUser))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content", hasSize(1)))
-                .andExpect(jsonPath("$.content[0].branchId").value(branch1Id))
-                .andExpect(jsonPath("$.content[0].productId").value(testProductId))
-                .andExpect(jsonPath("$.content[0].quantity").value(100));
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items", hasSize(1)))
+                .andExpect(jsonPath("$.data.items[0].branchId").value(branch2Id))
+                .andExpect(jsonPath("$.data.items[0].productId").value(testProductId))
+                .andExpect(jsonPath("$.data.items[0].quantity").value(50));
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("GET /api/inventory/stock/branch/{branchId}/product/{productId} - Should return specific stock")
+    @DisplayName("GET /api/v1/branches/{branchId}/stock/{productId} - Should return specific stock")
     void testGetSpecificStock_Success() throws Exception {
         // Act & Assert
-        mockMvc.perform(get("/api/inventory/stock/branch/" + branch1Id + "/product/" + testProductId))
+        mockMvc.perform(get("/api/v1/branches/" + branch1Id + "/stock/" + testProductId)
+                .with(adminUser))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.branchId").value(branch1Id))
-                .andExpect(jsonPath("$.productId").value(testProductId))
-                .andExpect(jsonPath("$.quantity").value(100))
-                .andExpect(jsonPath("$.version").isNumber());
+                .andExpect(jsonPath("$.data.branchId").value(branch1Id))
+                .andExpect(jsonPath("$.data.productId").value(testProductId))
+                .andExpect(jsonPath("$.data.quantity").value(100))
+                .andExpect(jsonPath("$.data.version").isNumber());
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("POST /api/inventory/movements - Should create IN movement")
+    @DisplayName("POST /api/v1/branches/{branchId}/movements - Should create IN movement")
     void testCreateMovement_IN_Success() throws Exception {
         // Arrange
-        StockMovementRequest request = new StockMovementRequest(
-            branch1Id,
+        StockMovementCreateRequest request = new StockMovementCreateRequest(
             testProductId,
             MovementType.IN,
             MovementReason.PURCHASE,
@@ -200,31 +201,31 @@ class InventoryControllerIntegrationTest {
         );
 
         // Act & Assert
-        mockMvc.perform(post("/api/inventory/movements")
+        mockMvc.perform(post("/api/v1/branches/" + branch1Id + "/movements")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.branchId").value(branch1Id))
-                .andExpect(jsonPath("$.productId").value(testProductId))
-                .andExpect(jsonPath("$.type").value("IN"))
-                .andExpect(jsonPath("$.reason").value("PURCHASE"))
-                .andExpect(jsonPath("$.quantity").value(50))
-                .andExpect(jsonPath("$.createdByUserId").isNumber());
+                .andExpect(jsonPath("$.data.branchId").value(branch1Id))
+                .andExpect(jsonPath("$.data.productId").value(testProductId))
+                .andExpect(jsonPath("$.data.type").value("IN"))
+                .andExpect(jsonPath("$.data.reason").value("PURCHASE"))
+                .andExpect(jsonPath("$.data.quantity").value(50))
+                .andExpect(jsonPath("$.data.createdByUserId").isNumber());
 
         // Verify stock was updated
-        mockMvc.perform(get("/api/inventory/stock/branch/" + branch1Id + "/product/" + testProductId))
+        mockMvc.perform(get("/api/v1/branches/" + branch1Id + "/stock/" + testProductId)
+                .with(adminUser))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.quantity").value(150)); // 100 + 50
+                .andExpect(jsonPath("$.data.quantity").value(150)); // 100 + 50
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("POST /api/inventory/movements - Should create OUT movement with sufficient stock")
+    @DisplayName("POST /api/v1/branches/{branchId}/movements - Should create OUT movement with sufficient stock")
     void testCreateMovement_OUT_Success() throws Exception {
         // Arrange
-        StockMovementRequest request = new StockMovementRequest(
-            branch1Id,
+        StockMovementCreateRequest request = new StockMovementCreateRequest(
             testProductId,
             MovementType.OUT,
             MovementReason.SALE,
@@ -233,27 +234,27 @@ class InventoryControllerIntegrationTest {
         );
 
         // Act & Assert
-        mockMvc.perform(post("/api/inventory/movements")
+        mockMvc.perform(post("/api/v1/branches/" + branch1Id + "/movements")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.type").value("OUT"))
-                .andExpect(jsonPath("$.quantity").value(30));
+                .andExpect(jsonPath("$.data.type").value("OUT"))
+                .andExpect(jsonPath("$.data.quantity").value(30));
 
         // Verify stock was decreased
-        mockMvc.perform(get("/api/inventory/stock/branch/" + branch1Id + "/product/" + testProductId))
+        mockMvc.perform(get("/api/v1/branches/" + branch1Id + "/stock/" + testProductId)
+                .with(adminUser))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.quantity").value(70)); // 100 - 30
+                .andExpect(jsonPath("$.data.quantity").value(70)); // 100 - 30
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("POST /api/inventory/movements - Should fail OUT movement with insufficient stock")
+    @DisplayName("POST /api/v1/branches/{branchId}/movements - Should fail OUT movement with insufficient stock")
     void testCreateMovement_OUT_InsufficientStock() throws Exception {
         // Arrange
-        StockMovementRequest request = new StockMovementRequest(
-            branch1Id,
+        StockMovementCreateRequest request = new StockMovementCreateRequest(
             testProductId,
             MovementType.OUT,
             MovementReason.SALE,
@@ -262,7 +263,8 @@ class InventoryControllerIntegrationTest {
         );
 
         // Act & Assert
-        mockMvc.perform(post("/api/inventory/movements")
+        mockMvc.perform(post("/api/v1/branches/" + branch1Id + "/movements")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -273,8 +275,7 @@ class InventoryControllerIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("POST /api/inventory/transfers - Should transfer stock between branches")
+    @DisplayName("POST /api/v1/transfers - Should transfer stock between branches")
     void testTransferStock_Success() throws Exception {
         // Arrange
         TransferStockRequest request = new TransferStockRequest(
@@ -286,28 +287,29 @@ class InventoryControllerIntegrationTest {
         );
 
         // Act & Assert
-        mockMvc.perform(post("/api/inventory/transfers")
+        mockMvc.perform(post("/api/v1/transfers")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.sourceBranchId").value(branch1Id))
-                .andExpect(jsonPath("$.destinationBranchId").value(branch2Id))
-                .andExpect(jsonPath("$.quantity").value(30));
+                .andExpect(jsonPath("$.data.sourceMovementId").isNumber())
+                .andExpect(jsonPath("$.data.destinationMovementId").isNumber());
 
         // Verify stocks were updated
-        mockMvc.perform(get("/api/inventory/stock/branch/" + branch1Id + "/product/" + testProductId))
+        mockMvc.perform(get("/api/v1/branches/" + branch1Id + "/stock/" + testProductId)
+                .with(adminUser))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.quantity").value(70)); // 100 - 30
+                .andExpect(jsonPath("$.data.quantity").value(70)); // 100 - 30
 
-        mockMvc.perform(get("/api/inventory/stock/branch/" + branch2Id + "/product/" + testProductId))
+        mockMvc.perform(get("/api/v1/branches/" + branch2Id + "/stock/" + testProductId)
+                .with(adminUser))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.quantity").value(80)); // 50 + 30
+                .andExpect(jsonPath("$.data.quantity").value(80)); // 50 + 30
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("POST /api/inventory/transfers - Should fail with insufficient stock")
+    @DisplayName("POST /api/v1/transfers - Should fail with insufficient stock")
     void testTransferStock_InsufficientStock() throws Exception {
         // Arrange
         TransferStockRequest request = new TransferStockRequest(
@@ -319,7 +321,8 @@ class InventoryControllerIntegrationTest {
         );
 
         // Act & Assert
-        mockMvc.perform(post("/api/inventory/transfers")
+        mockMvc.perform(post("/api/v1/transfers")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -329,12 +332,10 @@ class InventoryControllerIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("GET /api/inventory/movements - Should return movement history")
+    @DisplayName("GET /api/v1/branches/{branchId}/movements - Should return movement history")
     void testGetMovementHistory_Success() throws Exception {
         // Arrange - Create a movement first
-        StockMovementRequest request = new StockMovementRequest(
-            branch1Id,
+        StockMovementCreateRequest request = new StockMovementCreateRequest(
             testProductId,
             MovementType.IN,
             MovementReason.PURCHASE,
@@ -342,64 +343,64 @@ class InventoryControllerIntegrationTest {
             "Test movement"
         );
 
-        mockMvc.perform(post("/api/inventory/movements")
+        mockMvc.perform(post("/api/v1/branches/" + branch1Id + "/movements")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)));
 
         // Act & Assert
-        mockMvc.perform(get("/api/inventory/movements")
+        mockMvc.perform(get("/api/v1/branches/" + branch1Id + "/movements")
+                .with(adminUser)
                 .param("page", "0")
                 .param("size", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content", hasSize(greaterThanOrEqualTo(1))))
-                .andExpect(jsonPath("$.content[0].type").value("IN"))
-                .andExpect(jsonPath("$.content[0].reason").value("PURCHASE"))
-                .andExpect(jsonPath("$.content[0].quantity").value(25));
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items", hasSize(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$.data.items[0].type").value("IN"))
+                .andExpect(jsonPath("$.data.items[0].reason").value("PURCHASE"))
+                .andExpect(jsonPath("$.data.items[0].quantity").value(25));
     }
 
     @Test
-    @WithMockUser(roles = {"EMPLOYEE"})
-    @DisplayName("GET /api/inventory/stock - Should allow authenticated users to view stock")
+    @DisplayName("GET /api/v1/branches/{branchId}/stock - Should allow authenticated users to view stock")
     void testGetStock_Authenticated() throws Exception {
         // Act & Assert
-        mockMvc.perform(get("/api/inventory/stock")
+        mockMvc.perform(get("/api/v1/branches/" + branch1Id + "/stock")
+                .with(staffUser)
                 .param("page", "0")
                 .param("size", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray());
+                .andExpect(jsonPath("$.data.items").isArray());
     }
 
     @Test
-    @WithMockUser(roles = {"EMPLOYEE"})
-    @DisplayName("POST /api/inventory/movements - Should forbid non-admin users")
+    @DisplayName("POST /api/v1/branches/{branchId}/movements - Should forbid invalid staff movement")
     void testCreateMovement_Forbidden() throws Exception {
         // Arrange
-        StockMovementRequest request = new StockMovementRequest(
-            branch1Id,
+        StockMovementCreateRequest request = new StockMovementCreateRequest(
             testProductId,
-            MovementType.IN,
-            MovementReason.PURCHASE,
+            MovementType.ADJUSTMENT,
+            MovementReason.ADJUSTMENT_IN,
             10,
             null
         );
 
         // Act & Assert
-        mockMvc.perform(post("/api/inventory/movements")
+        mockMvc.perform(post("/api/v1/branches/" + branch1Id + "/movements")
+                .with(staffUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("INSUFFICIENT_PRIVILEGES"));
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("POST /api/inventory/movements - Should validate positive quantity")
+    @DisplayName("POST /api/v1/branches/{branchId}/movements - Should validate positive quantity")
     void testCreateMovement_InvalidQuantity() throws Exception {
         // Arrange
-        StockMovementRequest request = new StockMovementRequest(
-            branch1Id,
+        StockMovementCreateRequest request = new StockMovementCreateRequest(
             testProductId,
             MovementType.IN,
             MovementReason.PURCHASE,
@@ -408,7 +409,8 @@ class InventoryControllerIntegrationTest {
         );
 
         // Act & Assert
-        mockMvc.perform(post("/api/inventory/movements")
+        mockMvc.perform(post("/api/v1/branches/" + branch1Id + "/movements")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -416,12 +418,10 @@ class InventoryControllerIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("POST /api/inventory/movements - Should validate branch belongs to tenant")
+    @DisplayName("POST /api/v1/branches/{branchId}/movements - Should validate branch belongs to tenant")
     void testCreateMovement_BranchFromDifferentTenant() throws Exception {
         // Arrange
-        StockMovementRequest request = new StockMovementRequest(
-            999L, // Non-existent branch
+        StockMovementCreateRequest request = new StockMovementCreateRequest(
             testProductId,
             MovementType.IN,
             MovementReason.PURCHASE,
@@ -430,7 +430,13 @@ class InventoryControllerIntegrationTest {
         );
 
         // Act & Assert
-        mockMvc.perform(post("/api/inventory/movements")
+        RequestPostProcessor adminWithInvalidBranch = TestSecurityUtils.admin(
+            testTenantId,
+            List.of(branch1Id, branch2Id, 999L)
+        );
+
+        mockMvc.perform(post("/api/v1/branches/999/movements")
+                .with(adminWithInvalidBranch)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))

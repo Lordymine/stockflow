@@ -5,8 +5,8 @@ import com.stockflow.modules.users.application.dto.CreateUserRequest;
 import com.stockflow.modules.users.application.dto.UpdateUserBranchesRequest;
 import com.stockflow.modules.users.application.dto.UpdateUserRolesRequest;
 import com.stockflow.modules.users.application.dto.UserResponse;
-import com.stockflow.shared.application.dto.PaginationResponse;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 
 /**
  * Service interface for user management operations.
@@ -35,7 +35,7 @@ public interface UserService {
      * @param pageable the pagination parameters
      * @return paginated list of users
      */
-    PaginationResponse<UserResponse> listUsers(Pageable pageable);
+    Page<UserResponse> listUsers(Pageable pageable);
 
     /**
      * Updates a user's active status.

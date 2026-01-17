@@ -30,6 +30,16 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findByIdAndTenantId(@Param("id") Long id, @Param("tenantId") Long tenantId);
 
     /**
+     * Finds a product by ID regardless of active status.
+     *
+     * @param id       the product ID
+     * @param tenantId the tenant ID
+     * @return Optional containing the product if found
+     */
+    @Query("SELECT p FROM Product p WHERE p.id = :id AND p.tenantId = :tenantId")
+    Optional<Product> findByIdAndTenantIdIncludingInactive(@Param("id") Long id, @Param("tenantId") Long tenantId);
+
+    /**
      * Finds all active products for a tenant with pagination.
      *
      * @param tenantId the tenant ID

@@ -40,6 +40,7 @@
 | PATCH /api/v1/users/{id}/active | ADMIN | Ativar/desativar |
 | PUT /api/v1/users/{id}/roles | ADMIN | Definir roles |
 | PUT /api/v1/users/{id}/branches | ADMIN | Definir filiais |
+| POST /api/v1/users/change-password | ADMIN, MANAGER, STAFF | Alterar a propria senha |
 
 ### Branches
 | Endpoint | Roles | Observacoes |

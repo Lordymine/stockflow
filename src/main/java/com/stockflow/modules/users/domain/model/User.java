@@ -1,11 +1,11 @@
 package com.stockflow.modules.users.domain.model;
 
+import com.stockflow.modules.branches.domain.model.Branch;
 import com.stockflow.shared.domain.exception.ValidationException;
 import com.stockflow.shared.domain.model.BaseEntity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.Where;
 
 import java.util.HashSet;
 import java.util.Objects;
@@ -26,7 +26,6 @@ import java.util.Set;
 @Entity
 @Table(name = "users")
 @SQLDelete(sql = "UPDATE users SET is_active = false WHERE id = ?")
-@Where(clause = "is_active = true")
 public class User extends BaseEntity {
 
     /**

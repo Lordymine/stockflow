@@ -9,7 +9,7 @@ Precisamos de separacao clara de dominios sem custo operacional de microservicos
 
 ## Decisao
 Adotar um modular monolith com DDD pragmatico e camadas inspiradas em Clean/Hexagonal.
-Cada dominio tem `domain`, `application` e `infra`, sem dependencia de `domain` para `infra`.
+Cada dominio tem `domain`, `application` e `infrastructure`, sem dependencia de `domain` para `infrastructure`.
 Integracao entre dominios ocorre via interfaces na camada application.
 
 ## Consequencias

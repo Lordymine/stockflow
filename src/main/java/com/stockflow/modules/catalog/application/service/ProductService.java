@@ -88,10 +88,11 @@ public interface ProductService {
     );
 
     /**
-     * Toggles the active status of a product.
+     * Updates the active status of a product.
      *
      * @param productId the product ID
+     * @param isActive the new active status
      * @return the updated product response
      */
-    ProductResponse toggleActive(Long productId);
+    ProductResponse updateActive(Long productId, Boolean isActive);
 }

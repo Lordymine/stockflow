@@ -4,10 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stockflow.modules.catalog.application.dto.ProductRequest;
 import com.stockflow.modules.catalog.domain.repository.CategoryRepository;
 import com.stockflow.modules.catalog.domain.repository.ProductRepository;
-import com.stockflow.modules.tenant.domain.repository.TenantRepository;
+import com.stockflow.modules.tenants.domain.model.Tenant;
+import com.stockflow.modules.tenants.domain.repository.TenantRepository;
 import com.stockflow.modules.users.domain.repository.UserRepository;
-import com.stockflow.shared.infrastructure.security.TenantContext;
-import org.junit.jupiter.api.AfterEach;
+import com.stockflow.shared.security.TestSecurityUtils;
+import com.stockflow.shared.testing.TestcontainersIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,12 +16,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -37,14 +38,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *   <li>Find product by ID</li>
  *   <li>Find products by category</li>
  *   <li>Update product</li>
- *   <li>Delete product (soft delete)</li>
+ *   <li>Toggle product active status</li>
  * </ul>
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
 @Transactional
-class ProductControllerIntegrationTest {
+class ProductControllerIntegrationTest extends TestcontainersIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -64,8 +64,10 @@ class ProductControllerIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
-    private Long testTenantId = 1L;
+    private Long testTenantId;
     private Long testCategoryId;
+    private RequestPostProcessor adminUser;
+    private RequestPostProcessor staffUser;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -74,18 +76,20 @@ class ProductControllerIntegrationTest {
         categoryRepository.deleteAll();
         userRepository.deleteAll();
         tenantRepository.deleteAll();
-
-        // Set tenant context
-        TenantContext.setTenantId(testTenantId);
+        Tenant tenant = tenantRepository.save(new Tenant("Test Tenant", "test-tenant"));
+        testTenantId = tenant.getId();
+        adminUser = TestSecurityUtils.admin(testTenantId, List.of());
+        staffUser = TestSecurityUtils.staff(testTenantId, List.of());
 
         // Create a test category
         String categoryJson = """
             {
-                "name": "Eletrônicos"
+                "name": "Eletronicos"
             }
             """;
 
-        var result = mockMvc.perform(post("/api/catalog/categories")
+        var result = mockMvc.perform(post("/api/v1/categories")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(categoryJson))
@@ -93,17 +97,11 @@ class ProductControllerIntegrationTest {
                 .andReturn();
 
         String response = result.getResponse().getContentAsString();
-        testCategoryId = objectMapper.readTree(response).get("id").asLong();
-    }
-
-    @AfterEach
-    void tearDown() {
-        TenantContext.clear();
+        testCategoryId = objectMapper.readTree(response).get("data").get("id").asLong();
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("POST /api/catalog/products - Should create product successfully")
+    @DisplayName("POST /api/v1/products - Should create product successfully")
     void testCreateProduct_Success() throws Exception {
         // Arrange
         ProductRequest request = new ProductRequest(
@@ -120,27 +118,27 @@ class ProductControllerIntegrationTest {
         );
 
         // Act & Assert
-        mockMvc.perform(post("/api/catalog/products")
+        mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.tenantId").value(testTenantId))
-                .andExpect(jsonPath("$.name").value("Smartphone XYZ"))
-                .andExpect(jsonPath("$.sku").value("SMART-12345"))
-                .andExpect(jsonPath("$.unitOfMeasure").value("UN"))
-                .andExpect(jsonPath("$.costPrice").value(1000.00))
-                .andExpect(jsonPath("$.salePrice").value(1500.00))
-                .andExpect(jsonPath("$.minStock").value(10))
-                .andExpect(jsonPath("$.categoryId").value(testCategoryId))
-                .andExpect(jsonPath("$.isActive").value(true))
-                .andExpect(jsonPath("$.version").value(0));
+                .andExpect(jsonPath("$.data.id").isNumber())
+                .andExpect(jsonPath("$.data.tenantId").value(testTenantId))
+                .andExpect(jsonPath("$.data.name").value("Smartphone XYZ"))
+                .andExpect(jsonPath("$.data.sku").value("SMART-12345"))
+                .andExpect(jsonPath("$.data.unitOfMeasure").value("UN"))
+                .andExpect(jsonPath("$.data.costPrice").value(1000.00))
+                .andExpect(jsonPath("$.data.salePrice").value(1500.00))
+                .andExpect(jsonPath("$.data.minStock").value(10))
+                .andExpect(jsonPath("$.data.categoryId").value(testCategoryId))
+                .andExpect(jsonPath("$.data.isActive").value(true))
+                .andExpect(jsonPath("$.data.version").value(0));
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("POST /api/catalog/products - Should fail when SKU already exists")
+    @DisplayName("POST /api/v1/products - Should fail when SKU already exists")
     void testCreateProduct_SkuAlreadyExists() throws Exception {
         // Arrange - Create first product
         ProductRequest firstRequest = new ProductRequest(
@@ -156,7 +154,8 @@ class ProductControllerIntegrationTest {
             null
         );
 
-        mockMvc.perform(post("/api/catalog/products")
+        mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(firstRequest)))
@@ -176,7 +175,8 @@ class ProductControllerIntegrationTest {
             null
         );
 
-        mockMvc.perform(post("/api/catalog/products")
+        mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(duplicateRequest)))
@@ -186,8 +186,7 @@ class ProductControllerIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("POST /api/catalog/products - Should fail when cost price exceeds sale price")
+    @DisplayName("POST /api/v1/products - Should fail when cost price exceeds sale price")
     void testCreateProduct_CostPriceExceedsSalePrice() throws Exception {
         // Arrange
         ProductRequest request = new ProductRequest(
@@ -204,18 +203,18 @@ class ProductControllerIntegrationTest {
         );
 
         // Act & Assert
-        mockMvc.perform(post("/api/catalog/products")
+        mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+                .andExpect(jsonPath("$.error.code").value("INVALID_PRICE_RELATIONSHIP"));
     }
 
     @Test
-    @WithMockUser(roles = {"EMPLOYEE"})
-    @DisplayName("POST /api/catalog/products - Should forbid access for non-admin users")
+    @DisplayName("POST /api/v1/products - Should forbid access for non-admin users")
     void testCreateProduct_Forbidden() throws Exception {
         // Arrange
         ProductRequest request = new ProductRequest(
@@ -232,7 +231,8 @@ class ProductControllerIntegrationTest {
         );
 
         // Act & Assert
-        mockMvc.perform(post("/api/catalog/products")
+        mockMvc.perform(post("/api/v1/products")
+                .with(staffUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -240,8 +240,7 @@ class ProductControllerIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("GET /api/catalog/products - Should return paginated list")
+    @DisplayName("GET /api/v1/products - Should return paginated list")
     void testFindAllProducts_Success() throws Exception {
         // Arrange - Create multiple products
         for (int i = 1; i <= 3; i++) {
@@ -257,7 +256,8 @@ class ProductControllerIntegrationTest {
                 10,
                 null
             );
-            mockMvc.perform(post("/api/catalog/products")
+            mockMvc.perform(post("/api/v1/products")
+                    .with(adminUser)
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)))
@@ -265,21 +265,21 @@ class ProductControllerIntegrationTest {
         }
 
         // Act & Assert
-        mockMvc.perform(get("/api/catalog/products")
+        mockMvc.perform(get("/api/v1/products")
+                .with(adminUser)
                 .param("page", "0")
                 .param("size", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content", hasSize(3)))
-                .andExpect(jsonPath("$.content[0].name").exists())
-                .andExpect(jsonPath("$.totalElements").value(3))
-                .andExpect(jsonPath("$.totalPages").value(1))
-                .andExpect(jsonPath("$.pageNumber").value(0));
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items", hasSize(3)))
+                .andExpect(jsonPath("$.data.items[0].name").exists())
+                .andExpect(jsonPath("$.meta.totalItems").value(3))
+                .andExpect(jsonPath("$.meta.totalPages").value(1))
+                .andExpect(jsonPath("$.meta.page").value(0));
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("GET /api/catalog/products/{id} - Should return product by ID")
+    @DisplayName("GET /api/v1/products/{id} - Should return product by ID")
     void testFindProductById_Success() throws Exception {
         // Arrange - Create product
         ProductRequest request = new ProductRequest(
@@ -295,7 +295,8 @@ class ProductControllerIntegrationTest {
             testCategoryId
         );
 
-        var result = mockMvc.perform(post("/api/catalog/products")
+        var result = mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -303,20 +304,20 @@ class ProductControllerIntegrationTest {
                 .andReturn();
 
         String response = result.getResponse().getContentAsString();
-        Long productId = objectMapper.readTree(response).get("id").asLong();
+        Long productId = objectMapper.readTree(response).get("data").get("id").asLong();
 
         // Act & Assert
-        mockMvc.perform(get("/api/catalog/products/" + productId))
+        mockMvc.perform(get("/api/v1/products/" + productId)
+                .with(adminUser))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(productId))
-                .andExpect(jsonPath("$.name").value("Smartphone XYZ"))
-                .andExpect(jsonPath("$.sku").value("SMART-12345"))
-                .andExpect(jsonPath("$.isActive").value(true));
+                .andExpect(jsonPath("$.data.id").value(productId))
+                .andExpect(jsonPath("$.data.name").value("Smartphone XYZ"))
+                .andExpect(jsonPath("$.data.sku").value("SMART-12345"))
+                .andExpect(jsonPath("$.data.isActive").value(true));
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("GET /api/catalog/products/category/{categoryId} - Should return products by category")
+    @DisplayName("GET /api/v1/products?categoryId={id} - Should return products by category")
     void testFindProductsByCategory_Success() throws Exception {
         // Arrange - Create products in category
         ProductRequest request1 = new ProductRequest(
@@ -345,28 +346,31 @@ class ProductControllerIntegrationTest {
             testCategoryId
         );
 
-        mockMvc.perform(post("/api/catalog/products")
+        mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request1)));
 
-        mockMvc.perform(post("/api/catalog/products")
+        mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request2)));
 
         // Act & Assert
-        mockMvc.perform(get("/api/catalog/products/category/" + testCategoryId))
+        mockMvc.perform(get("/api/v1/products")
+                .with(adminUser)
+                .param("categoryId", String.valueOf(testCategoryId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content", hasSize(2)))
-                .andExpect(jsonPath("$.content[0].categoryId").value(testCategoryId))
-                .andExpect(jsonPath("$.content[1].categoryId").value(testCategoryId));
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items", hasSize(2)))
+                .andExpect(jsonPath("$.data.items[0].categoryId").value(testCategoryId))
+                .andExpect(jsonPath("$.data.items[1].categoryId").value(testCategoryId));
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("PUT /api/catalog/products/{id} - Should update product successfully")
+    @DisplayName("PUT /api/v1/products/{id} - Should update product successfully")
     void testUpdateProduct_Success() throws Exception {
         // Arrange - Create product
         ProductRequest createRequest = new ProductRequest(
@@ -382,7 +386,8 @@ class ProductControllerIntegrationTest {
             null
         );
 
-        var result = mockMvc.perform(post("/api/catalog/products")
+        var result = mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(createRequest)))
@@ -390,7 +395,7 @@ class ProductControllerIntegrationTest {
                 .andReturn();
 
         String response = result.getResponse().getContentAsString();
-        Long productId = objectMapper.readTree(response).get("id").asLong();
+        Long productId = objectMapper.readTree(response).get("data").get("id").asLong();
 
         // Act & Assert - Update product
         ProductRequest updateRequest = new ProductRequest(
@@ -406,24 +411,24 @@ class ProductControllerIntegrationTest {
             testCategoryId
         );
 
-        mockMvc.perform(put("/api/catalog/products/" + productId)
+        mockMvc.perform(put("/api/v1/products/" + productId)
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(productId))
-                .andExpect(jsonPath("$.name").value("Smartphone XYZ Updated"))
-                .andExpect(jsonPath("$.description").value("Updated description"))
-                .andExpect(jsonPath("$.costPrice").value(1200.00))
-                .andExpect(jsonPath("$.salePrice").value(1800.00))
-                .andExpect(jsonPath("$.minStock").value(15))
-                .andExpect(jsonPath("$.version").value(1)); // Version incremented
+                .andExpect(jsonPath("$.data.id").value(productId))
+                .andExpect(jsonPath("$.data.name").value("Smartphone XYZ Updated"))
+                .andExpect(jsonPath("$.data.description").value("Updated description"))
+                .andExpect(jsonPath("$.data.costPrice").value(1200.00))
+                .andExpect(jsonPath("$.data.salePrice").value(1800.00))
+                .andExpect(jsonPath("$.data.minStock").value(15))
+                .andExpect(jsonPath("$.data.version").value(1)); // Version incremented
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("DELETE /api/catalog/products/{id} - Should soft delete product successfully")
-    void testDeleteProduct_Success() throws Exception {
+    @DisplayName("PATCH /api/v1/products/{id}/active - Should hide deactivated product from findById")
+    void testDeactivateProduct_HidesFromFindById() throws Exception {
         // Arrange - Create product
         ProductRequest request = new ProductRequest(
             "Smartphone XYZ",
@@ -438,7 +443,8 @@ class ProductControllerIntegrationTest {
             null
         );
 
-        var result = mockMvc.perform(post("/api/catalog/products")
+        var result = mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -446,31 +452,36 @@ class ProductControllerIntegrationTest {
                 .andReturn();
 
         String response = result.getResponse().getContentAsString();
-        Long productId = objectMapper.readTree(response).get("id").asLong();
+        Long productId = objectMapper.readTree(response).get("data").get("id").asLong();
 
-        // Act & Assert - Delete product
-        mockMvc.perform(delete("/api/catalog/products/" + productId)
-                .with(csrf()))
-                .andExpect(status().isNoContent());
+        // Act & Assert - Deactivate product
+        mockMvc.perform(patch("/api/v1/products/" + productId + "/active")
+                .with(adminUser)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"isActive\": false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(productId))
+                .andExpect(jsonPath("$.data.isActive").value(false));
 
-        // Verify product is soft deleted
-        mockMvc.perform(get("/api/catalog/products/" + productId))
+        // Verify product is hidden from active queries
+        mockMvc.perform(get("/api/v1/products/" + productId)
+                .with(adminUser))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("PRODUCT_NOT_FOUND"));
     }
 
     @Test
-    @DisplayName("GET /api/catalog/products - Should return 401 when not authenticated")
+    @DisplayName("GET /api/v1/products - Should return 401 when not authenticated")
     void testFindAllProducts_Unauthenticated() throws Exception {
         // Act & Assert
-        mockMvc.perform(get("/api/catalog/products"))
+        mockMvc.perform(get("/api/v1/products"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("POST /api/catalog/products - Should validate required fields")
+    @DisplayName("POST /api/v1/products - Should validate required fields")
     void testCreateProduct_ValidationErrors() throws Exception {
         // Arrange - Empty name
         ProductRequest request = new ProductRequest(
@@ -487,7 +498,8 @@ class ProductControllerIntegrationTest {
         );
 
         // Act & Assert
-        mockMvc.perform(post("/api/catalog/products")
+        mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -495,8 +507,7 @@ class ProductControllerIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("GET /api/catalog/products/search - Should search products by name")
+    @DisplayName("GET /api/v1/products - Should search products by name")
     void testSearchProducts_ByName() throws Exception {
         // Arrange - Create products
         ProductRequest request1 = new ProductRequest(
@@ -525,29 +536,31 @@ class ProductControllerIntegrationTest {
             null
         );
 
-        mockMvc.perform(post("/api/catalog/products")
+        mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request1)));
 
-        mockMvc.perform(post("/api/catalog/products")
+        mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request2)));
 
         // Act & Assert - Search for "laptop"
-        mockMvc.perform(get("/api/catalog/products/search")
+        mockMvc.perform(get("/api/v1/products")
+                .with(adminUser)
                 .param("search", "laptop"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content", hasSize(1)))
-                .andExpect(jsonPath("$.content[0].name").value("Laptop Dell XYZ"))
-                .andExpect(jsonPath("$.content[0].sku").value("LAPTOP-001"));
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items", hasSize(1)))
+                .andExpect(jsonPath("$.data.items[0].name").value("Laptop Dell XYZ"))
+                .andExpect(jsonPath("$.data.items[0].sku").value("LAPTOP-001"));
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("GET /api/catalog/products/search - Should filter by category")
+    @DisplayName("GET /api/v1/products - Should filter by category")
     void testSearchProducts_ByCategory() throws Exception {
         // Arrange - Create products in category
         ProductRequest request1 = new ProductRequest(
@@ -576,28 +589,30 @@ class ProductControllerIntegrationTest {
             null
         );
 
-        mockMvc.perform(post("/api/catalog/products")
+        mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request1)));
 
-        mockMvc.perform(post("/api/catalog/products")
+        mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request2)));
 
         // Act & Assert - Filter by category
-        mockMvc.perform(get("/api/catalog/products/search")
+        mockMvc.perform(get("/api/v1/products")
+                .with(adminUser)
                 .param("categoryId", String.valueOf(testCategoryId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content", hasSize(1)))
-                .andExpect(jsonPath("$.content[0].categoryId").value(testCategoryId));
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items", hasSize(1)))
+                .andExpect(jsonPath("$.data.items[0].categoryId").value(testCategoryId));
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("GET /api/catalog/products/search - Should filter by price range")
+    @DisplayName("GET /api/v1/products - Should filter by price range")
     void testSearchProducts_ByPriceRange() throws Exception {
         // Arrange - Create products with different prices
         ProductRequest request1 = new ProductRequest(
@@ -626,29 +641,31 @@ class ProductControllerIntegrationTest {
             null
         );
 
-        mockMvc.perform(post("/api/catalog/products")
+        mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request1)));
 
-        mockMvc.perform(post("/api/catalog/products")
+        mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request2)));
 
         // Act & Assert - Filter by price range
-        mockMvc.perform(get("/api/catalog/products/search")
+        mockMvc.perform(get("/api/v1/products")
+                .with(adminUser)
                 .param("minPrice", "150.00")
                 .param("maxPrice", "1000.00"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content", hasSize(1)))
-                .andExpect(jsonPath("$.content[0].name").value("Expensive Product"));
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items", hasSize(1)))
+                .andExpect(jsonPath("$.data.items[0].name").value("Expensive Product"));
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("GET /api/catalog/products/search - Should sort by price descending")
+    @DisplayName("GET /api/v1/products - Should sort by price descending")
     void testSearchProducts_SortByPriceDescending() throws Exception {
         // Arrange - Create products
         for (int i = 1; i <= 3; i++) {
@@ -664,27 +681,28 @@ class ProductControllerIntegrationTest {
                 10,
                 null
             );
-            mockMvc.perform(post("/api/catalog/products")
+            mockMvc.perform(post("/api/v1/products")
+                    .with(adminUser)
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
         }
 
         // Act & Assert - Sort by price descending
-        mockMvc.perform(get("/api/catalog/products/search")
+        mockMvc.perform(get("/api/v1/products")
+                .with(adminUser)
                 .param("sortBy", "salePrice")
                 .param("sortOrder", "DESC"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content", hasSize(3)))
-                .andExpect(jsonPath("$.content[0].salePrice").value(450.00))
-                .andExpect(jsonPath("$.content[1].salePrice").value(300.00))
-                .andExpect(jsonPath("$.content[2].salePrice").value(150.00));
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items", hasSize(3)))
+                .andExpect(jsonPath("$.data.items[0].salePrice").value(450.00))
+                .andExpect(jsonPath("$.data.items[1].salePrice").value(300.00))
+                .andExpect(jsonPath("$.data.items[2].salePrice").value(150.00));
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("GET /api/catalog/products/search - Should filter only active products")
+    @DisplayName("GET /api/v1/products - Should filter only active products")
     void testSearchProducts_OnlyActive() throws Exception {
         // Arrange - Create active product
         ProductRequest request = new ProductRequest(
@@ -700,7 +718,8 @@ class ProductControllerIntegrationTest {
             null
         );
 
-        var result = mockMvc.perform(post("/api/catalog/products")
+        var result = mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -708,24 +727,28 @@ class ProductControllerIntegrationTest {
                 .andReturn();
 
         String response = result.getResponse().getContentAsString();
-        Long productId = objectMapper.readTree(response).get("id").asLong();
+        Long productId = objectMapper.readTree(response).get("data").get("id").asLong();
 
-        // Soft delete one product
-        mockMvc.perform(delete("/api/catalog/products/" + productId)
-                .with(csrf()))
-                .andExpect(status().isNoContent());
+        // Deactivate the product
+        mockMvc.perform(patch("/api/v1/products/" + productId + "/active")
+                .with(adminUser)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"isActive\": false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.isActive").value(false));
 
         // Act & Assert - Search only active
-        mockMvc.perform(get("/api/catalog/products/search")
+        mockMvc.perform(get("/api/v1/products")
+                .with(adminUser)
                 .param("isActive", "true"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content", hasSize(0)));
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items", hasSize(0)));
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("PATCH /api/catalog/products/{id}/active - Should deactivate active product")
+    @DisplayName("PATCH /api/v1/products/{id}/active - Should deactivate active product")
     void testToggleActive_DeactivateProduct() throws Exception {
         // Arrange - Create active product
         ProductRequest request = new ProductRequest(
@@ -741,7 +764,8 @@ class ProductControllerIntegrationTest {
             null
         );
 
-        var result = mockMvc.perform(post("/api/catalog/products")
+        var result = mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -749,20 +773,21 @@ class ProductControllerIntegrationTest {
                 .andReturn();
 
         String response = result.getResponse().getContentAsString();
-        Long productId = objectMapper.readTree(response).get("id").asLong();
+        Long productId = objectMapper.readTree(response).get("data").get("id").asLong();
 
         // Act & Assert - Deactivate product
-        mockMvc.perform(patch("/api/catalog/products/" + productId + "/active")
+        mockMvc.perform(patch("/api/v1/products/" + productId + "/active")
+                .with(adminUser)
                 .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"isActive\": false}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(productId))
-                .andExpect(jsonPath("$.isActive").value(false));
+                .andExpect(jsonPath("$.data.id").value(productId))
+                .andExpect(jsonPath("$.data.isActive").value(false));
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("PATCH /api/catalog/products/{id}/active - Should activate inactive product")
+    @DisplayName("PATCH /api/v1/products/{id}/active - Should activate inactive product")
     void testToggleActive_ActivateProduct() throws Exception {
         // Arrange - Create and then deactivate product
         ProductRequest request = new ProductRequest(
@@ -778,7 +803,8 @@ class ProductControllerIntegrationTest {
             null
         );
 
-        var result = mockMvc.perform(post("/api/catalog/products")
+        var result = mockMvc.perform(post("/api/v1/products")
+                .with(adminUser)
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -786,43 +812,49 @@ class ProductControllerIntegrationTest {
                 .andReturn();
 
         String response = result.getResponse().getContentAsString();
-        Long productId = objectMapper.readTree(response).get("id").asLong();
+        Long productId = objectMapper.readTree(response).get("data").get("id").asLong();
 
         // Deactivate first
-        mockMvc.perform(patch("/api/catalog/products/" + productId + "/active")
+        mockMvc.perform(patch("/api/v1/products/" + productId + "/active")
+                .with(adminUser)
                 .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"isActive\": false}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.isActive").value(false));
+                .andExpect(jsonPath("$.data.isActive").value(false));
 
         // Act & Assert - Reactivate product
-        mockMvc.perform(patch("/api/catalog/products/" + productId + "/active")
+        mockMvc.perform(patch("/api/v1/products/" + productId + "/active")
+                .with(adminUser)
                 .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"isActive\": true}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(productId))
-                .andExpect(jsonPath("$.isActive").value(true));
+                .andExpect(jsonPath("$.data.id").value(productId))
+                .andExpect(jsonPath("$.data.isActive").value(true));
     }
 
     @Test
-    @WithMockUser(roles = {"EMPLOYEE"})
-    @DisplayName("PATCH /api/catalog/products/{id}/active - Should forbid access for non-admin users")
+    @DisplayName("PATCH /api/v1/products/{id}/active - Should forbid access for non-admin users")
     void testToggleActive_Forbidden() throws Exception {
         // Act & Assert
-        mockMvc.perform(patch("/api/catalog/products/1/active")
+        mockMvc.perform(patch("/api/v1/products/1/active")
+                .with(staffUser)
                 .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"isActive\": false}"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    @DisplayName("PATCH /api/catalog/products/{id}/active - Should return 404 for non-existent product")
+    @DisplayName("PATCH /api/v1/products/{id}/active - Should return 404 for non-existent product")
     void testToggleActive_NotFound() throws Exception {
         // Act & Assert
-        mockMvc.perform(patch("/api/catalog/products/99999/active")
+        mockMvc.perform(patch("/api/v1/products/99999/active")
+                .with(adminUser)
                 .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"isActive\": false}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("PRODUCT_NOT_FOUND"));

@@ -90,6 +90,7 @@ All errors follow this standard format:
 
 | Error Code | Message | Description |
 |------------|---------|-------------|
+| `INVALID_PRICE_RELATIONSHIP` | Cost price cannot be greater than sale price | Invalid product pricing |
 | `STOCK_NEGATIVE_NOT_ALLOWED` | Stock cannot be negative | Attempt to set stock below zero |
 | `TRANSFER_SAME_BRANCH` | Cannot transfer to same branch | Origin and destination branches must be different |
 | `TRANSFER_QUANTITY_INVALID` | Invalid transfer quantity | Transfer quantity must be greater than zero |

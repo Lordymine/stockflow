@@ -3,13 +3,17 @@ package com.stockflow.modules.catalog.infrastructure.web;
 import com.stockflow.modules.catalog.application.dto.ProductRequest;
 import com.stockflow.modules.catalog.application.dto.ProductResponse;
 import com.stockflow.modules.catalog.application.service.ProductService;
+import com.stockflow.shared.application.dto.ActiveRequest;
+import com.stockflow.shared.application.dto.ApiResponse;
+import com.stockflow.shared.application.dto.ItemsResponse;
+import com.stockflow.shared.application.dto.PageMeta;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -18,12 +22,9 @@ import java.math.BigDecimal;
 
 /**
  * REST controller for product operations.
- *
- * <p>Provides endpoints for managing products in the catalog.
- * All operations are scoped to the current tenant.</p>
  */
 @RestController
-@RequestMapping("/api/catalog/products")
+@RequestMapping("/api/v1/products")
 @Tag(name = "Products", description = "Product management endpoints")
 @SecurityRequirement(name = "bearerAuth")
 public class ProductController {
@@ -43,97 +44,15 @@ public class ProductController {
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @Operation(summary = "Create product", description = "Creates a new product. Requires ADMIN or MANAGER role.")
-    public ResponseEntity<ProductResponse> create(@RequestBody ProductRequest request) {
+    public ResponseEntity<ApiResponse<ProductResponse>> create(@Valid @RequestBody ProductRequest request) {
         ProductResponse response = productService.create(request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.of(response));
     }
 
     /**
-     * Finds all products with pagination.
+     * Lists products with optional search and filters.
      *
-     * @param pageable pagination parameters
-     * @return page of products
-     */
-    @GetMapping
-    @Operation(summary = "Find all products", description = "Retrieves all products for the current tenant with pagination")
-    public ResponseEntity<Page<ProductResponse>> findAll(
-            @Parameter(description = "Pagination parameters")
-            @PageableDefault(size = 20) Pageable pageable) {
-        Page<ProductResponse> response = productService.findAll(pageable);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Finds a product by ID.
-     *
-     * @param id the product ID
-     * @return the product
-     */
-    @GetMapping("/{id}")
-    @Operation(summary = "Find product by ID", description = "Retrieves a specific product by ID")
-    public ResponseEntity<ProductResponse> findById(
-            @Parameter(description = "Product ID", required = true)
-            @PathVariable Long id) {
-        ProductResponse response = productService.findById(id);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Finds all products in a specific category with pagination.
-     *
-     * @param categoryId the category ID
-     * @param pageable   pagination parameters
-     * @return page of products in the category
-     */
-    @GetMapping("/category/{categoryId}")
-    @Operation(summary = "Find products by category", description = "Retrieves all products in a specific category with pagination")
-    public ResponseEntity<Page<ProductResponse>> findByCategory(
-            @Parameter(description = "Category ID", required = true)
-            @PathVariable Long categoryId,
-            @Parameter(description = "Pagination parameters")
-            @PageableDefault(size = 20) Pageable pageable) {
-        Page<ProductResponse> response = productService.findByCategory(categoryId, pageable);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Updates an existing product.
-     *
-     * @param id      the product ID
-     * @param request the product request data
-     * @return the updated product
-     */
-    @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    @Operation(summary = "Update product", description = "Updates an existing product. Requires ADMIN or MANAGER role.")
-    public ResponseEntity<ProductResponse> update(
-            @Parameter(description = "Product ID", required = true)
-            @PathVariable Long id,
-            @RequestBody ProductRequest request) {
-        ProductResponse response = productService.update(id, request);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Deletes a product (soft delete).
-     *
-     * @param id the product ID
-     * @return empty response
-     */
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    @Operation(summary = "Delete product", description = "Soft deletes a product. Requires ADMIN or MANAGER role.")
-    public ResponseEntity<Void> delete(
-            @Parameter(description = "Product ID", required = true)
-            @PathVariable Long id) {
-        productService.delete(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    /**
-     * Searches products with multiple filters.
-     *
-     * @param search     optional search term (searches in name, sku, description, barcode)
+     * @param search     optional search term
      * @param categoryId optional category filter
      * @param minPrice   optional minimum sale price filter
      * @param maxPrice   optional maximum sale price filter
@@ -144,10 +63,11 @@ public class ProductController {
      * @param size       page size (default 20)
      * @return page of matching products
      */
-    @GetMapping("/search")
-    @Operation(summary = "Search products", description = "Searches products with multiple filters including search term, category, price range, and active status")
-    public ResponseEntity<Page<ProductResponse>> search(
-            @Parameter(description = "Search term (searches in name, sku, description, barcode)")
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @Operation(summary = "List products", description = "Retrieves products with optional search and filters")
+    public ResponseEntity<ApiResponse<ItemsResponse<ProductResponse>>> list(
+            @Parameter(description = "Search term (name, sku, description, barcode)")
             @RequestParam(required = false) String search,
             @Parameter(description = "Filter by category ID")
             @RequestParam(required = false) Long categoryId,
@@ -166,8 +86,44 @@ public class ProductController {
             @Parameter(description = "Page size (default 20)")
             @RequestParam(defaultValue = "20") int size) {
         Page<ProductResponse> response = productService.search(
-                search, categoryId, minPrice, maxPrice, isActive, sortBy, sortOrder, page, size);
-        return ResponseEntity.ok(response);
+            search, categoryId, minPrice, maxPrice, isActive, sortBy, sortOrder, page, size);
+        return ResponseEntity.ok(
+            ApiResponse.of(new ItemsResponse<>(response.getContent()), PageMeta.of(response))
+        );
+    }
+
+    /**
+     * Finds a product by ID.
+     *
+     * @param id the product ID
+     * @return the product
+     */
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @Operation(summary = "Find product by ID", description = "Retrieves a specific product by ID")
+    public ResponseEntity<ApiResponse<ProductResponse>> findById(
+            @Parameter(description = "Product ID", required = true)
+            @PathVariable Long id) {
+        ProductResponse response = productService.findById(id);
+        return ResponseEntity.ok(ApiResponse.of(response));
+    }
+
+    /**
+     * Updates an existing product.
+     *
+     * @param id      the product ID
+     * @param request the product request data
+     * @return the updated product
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(summary = "Update product", description = "Updates an existing product. Requires ADMIN or MANAGER role.")
+    public ResponseEntity<ApiResponse<ProductResponse>> update(
+            @Parameter(description = "Product ID", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody ProductRequest request) {
+        ProductResponse response = productService.update(id, request);
+        return ResponseEntity.ok(ApiResponse.of(response));
     }
 
     /**
@@ -179,13 +135,14 @@ public class ProductController {
     @PatchMapping("/{id}/active")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @Operation(
-        summary = "Toggle product active status",
-        description = "Activates or deactivates a product. If active, deactivates it. If inactive, activates it. Requires ADMIN or MANAGER role."
+        summary = "Update product active status",
+        description = "Activates or deactivates a product. Requires ADMIN or MANAGER role."
     )
-    public ResponseEntity<ProductResponse> toggleActive(
+    public ResponseEntity<ApiResponse<ProductResponse>> updateActiveStatus(
             @Parameter(description = "Product ID", required = true)
-            @PathVariable Long id) {
-        ProductResponse response = productService.toggleActive(id);
-        return ResponseEntity.ok(response);
+            @PathVariable Long id,
+            @Valid @RequestBody ActiveRequest request) {
+        ProductResponse response = productService.updateActive(id, request.isActive());
+        return ResponseEntity.ok(ApiResponse.of(response));
     }
 }

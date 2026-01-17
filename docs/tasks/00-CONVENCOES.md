@@ -6,9 +6,9 @@ Manter o codigo consistente e facil de manter, mesmo com varios autores.
 ## Regras gerais
 - Evitar duplicacao: shared-kernel e componentes reutilizaveis.
 - Responsabilidade unica por classe/arquivo.
-- Dependencias sempre apontam para dentro: domain -> application -> infra.
-- Domain nao depende de frameworks nem de infra.
-- DTOs e mappers apenas na borda (web/inbound/outbound).
+- Dependencias sempre apontam para dentro: domain -> application -> infrastructure.
+- Domain nao depende de frameworks nem de infrastructure.
+- DTOs e mappers ficam em application e sao usados na borda (controllers/handlers).
 - Erros seguem o catalogo do PRD.
 - Logs sem dados sensiveis.
 
@@ -16,14 +16,14 @@ Manter o codigo consistente e facil de manter, mesmo com varios autores.
 ### Estrutura por dominio
 - <dominio>/domain
 - <dominio>/application
-- <dominio>/infra/web
-- <dominio>/infra/persistence
-- <dominio>/infra/security (quando aplicavel)
+- <dominio>/infrastructure/web
+- <dominio>/infrastructure/persistence
+- <dominio>/infrastructure/security (quando aplicavel)
 
 ### Nomes e tipos
 - Entidades: `*Entity` ou nome do agregado.
-- Use cases: `*UseCase` (Create/Update/Transfer etc).
-- Services tecnicos: `*Service`.
+- Application services: `*Service`.
+- Use cases (quando existir): `*UseCase`.
 - Repositories: `*Repository`.
 - Controllers: `*Controller`.
 - DTOs: `*Request` e `*Response`.

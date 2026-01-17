@@ -3,7 +3,10 @@ package com.stockflow.modules.inventory.application.service;
 import com.stockflow.modules.inventory.application.dto.BranchStockResponse;
 import com.stockflow.modules.inventory.application.dto.StockMovementRequest;
 import com.stockflow.modules.inventory.application.dto.StockMovementResponse;
+import com.stockflow.modules.inventory.application.dto.TransferResult;
 import com.stockflow.modules.inventory.application.dto.TransferStockRequest;
+import com.stockflow.modules.inventory.domain.model.MovementReason;
+import com.stockflow.modules.inventory.domain.model.MovementType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -99,32 +102,18 @@ public interface InventoryService {
     TransferResult transferStock(TransferStockRequest request);
 
     /**
-     * Gets the movement history for a specific product in a specific branch.
+     * Gets the movement history for a specific branch with optional filters.
      *
      * @param branchId  the branch ID
-     * @param productId the product ID
+     * @param productId optional product ID filter
+     * @param type      optional movement type filter
+     * @param reason    optional movement reason filter
      * @param pageable  pagination parameters
      * @return page of stock movement responses
      */
-    Page<StockMovementResponse> getMovementHistory(Long branchId, Long productId, Pageable pageable);
-
-    /**
-     * Gets all movement history for the current tenant with pagination.
-     *
-     * @param pageable pagination parameters
-     * @return page of stock movement responses
-     */
-    Page<StockMovementResponse> getAllMovements(Pageable pageable);
-
-    /**
-     * Result of a stock transfer operation containing both movements.
-     *
-     * @param fromMovement the movement from the source branch
-     * @param toMovement   the movement to the destination branch
-     */
-    record TransferResult(
-        StockMovementResponse fromMovement,
-        StockMovementResponse toMovement
-    ) {
-    }
+    Page<StockMovementResponse> getMovementsByBranch(Long branchId,
+                                                     Long productId,
+                                                     MovementType type,
+                                                     MovementReason reason,
+                                                     Pageable pageable);
 }

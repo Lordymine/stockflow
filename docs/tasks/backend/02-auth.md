@@ -19,7 +19,7 @@ DoD:
 
 ## AUTH-04 Spring Security + RBAC
 DoD:
-- Rotas `/auth/**` publicas; demais protegidas.
+- Rotas `/api/v1/auth/**` publicas; demais protegidas.
 - Roles ADMIN/MANAGER/STAFF aplicadas.
 
 ## AUTH-05 TenantContext

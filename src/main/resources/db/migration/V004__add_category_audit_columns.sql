@@ -1,0 +1,4 @@
+-- Add auditing and soft delete columns to categories.
+ALTER TABLE categories ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE categories ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+ALTER TABLE categories ADD COLUMN version BIGINT NOT NULL DEFAULT 0;

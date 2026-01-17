@@ -224,6 +224,9 @@ public class ProductServiceImpl implements ProductService {
 
         Long tenantId = TenantContext.getTenantId();
 
+        // Default active filter to true when not provided
+        Boolean effectiveIsActive = isActive != null ? isActive : Boolean.TRUE;
+
         // Validate and default sortBy
         String validSortBy = VALID_SORT_FIELDS.contains(sortBy) ? sortBy : "name";
 
@@ -241,7 +244,7 @@ public class ProductServiceImpl implements ProductService {
 
         // Execute search
         Page<Product> products = productRepository.searchProducts(
-                search, categoryId, minPrice, maxPrice, isActive, tenantId, pageable);
+                search, categoryId, minPrice, maxPrice, effectiveIsActive, tenantId, pageable);
 
         logger.debug("Found {} products matching search criteria", products.getTotalElements());
 
@@ -250,29 +253,27 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    public ProductResponse toggleActive(Long productId) {
-        logger.info("Toggling active status for product with ID: {}", productId);
+    public ProductResponse updateActive(Long productId, Boolean isActive) {
+        logger.info("Updating active status for product with ID: {}", productId);
+
+        if (isActive == null) {
+            throw new ValidationException("VALIDATION_ERROR",
+                "Active status is required");
+        }
 
         Long tenantId = TenantContext.getTenantId();
 
         // Find product ensuring it belongs to tenant
-        Product product = productRepository.findByIdAndTenantId(productId, tenantId)
+        Product product = productRepository.findByIdAndTenantIdIncludingInactive(productId, tenantId)
             .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND",
                 "Product not found with ID: " + productId));
 
-        // Toggle active status
-        if (product.isActive()) {
-            logger.debug("Product {} is active, deactivating", productId);
-            product.deactivate();
-        } else {
-            logger.debug("Product {} is inactive, activating", productId);
-            product.activate();
-        }
+        product.setActive(isActive);
 
         // Save product
         Product updatedProduct = productRepository.save(product);
 
-        logger.info("Product active status toggled successfully: {} (now active: {})",
+        logger.info("Product active status updated successfully: {} (now active: {})",
             updatedProduct.getId(), updatedProduct.isActive());
 
         return productMapper.toResponse(updatedProduct);

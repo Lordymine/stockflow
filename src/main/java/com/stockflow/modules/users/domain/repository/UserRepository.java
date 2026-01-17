@@ -68,6 +68,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByIdAndTenantId(@Param("id") Long id, @Param("tenantId") Long tenantId);
 
     /**
+     * Finds a user by ID regardless of active status.
+     *
+     * @param id       the user ID
+     * @param tenantId the tenant ID
+     * @return Optional containing the user if found
+     */
+    @Query("SELECT u FROM User u WHERE u.id = :id AND u.tenantId = :tenantId")
+    Optional<User> findByIdAndTenantIdIncludingInactive(@Param("id") Long id, @Param("tenantId") Long tenantId);
+
+    /**
      * Finds all active users for a tenant with pagination.
      *
      * @param tenantId the tenant ID

@@ -3,7 +3,6 @@ package com.stockflow.modules.catalog.domain.model;
 import com.stockflow.shared.domain.model.BaseEntity;
 import jakarta.persistence.*;
 import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.Where;
 
 import java.math.BigDecimal;
 import java.util.Objects;
@@ -14,7 +13,7 @@ import java.util.Objects;
  * <p>Products represent items in the inventory that can be stocked, sold, and tracked.
  * Each product belongs to a tenant and can optionally be categorized.</p>
  *
- * <p><strong>Soft Delete:</strong> Uses @SQLDelete and @Where annotations for soft delete functionality.
+ * <p><strong>Soft Delete:</strong> Uses @SQLDelete for soft delete functionality.
  * When a product is "deleted", it's marked as inactive (is_active = false) instead of being removed
  * from the database. This maintains data integrity and allows for audit trails.</p>
  *
@@ -29,7 +28,6 @@ import java.util.Objects;
 @Entity
 @Table(name = "products")
 @SQLDelete(sql = "UPDATE products SET is_active = false WHERE id = ?")
-@Where(clause = "is_active = true")
 public class Product extends BaseEntity {
 
     /**

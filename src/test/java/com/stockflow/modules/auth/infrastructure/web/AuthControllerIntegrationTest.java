@@ -6,8 +6,9 @@ import com.stockflow.modules.auth.application.dto.RefreshTokenRequest;
 import com.stockflow.modules.auth.application.dto.LogoutRequest;
 import com.stockflow.modules.auth.application.dto.SignupRequest;
 import com.stockflow.modules.auth.application.dto.SignupResponse;
-import com.stockflow.modules.tenant.domain.repository.TenantRepository;
+import com.stockflow.modules.tenants.domain.repository.TenantRepository;
 import com.stockflow.modules.users.domain.repository.UserRepository;
+import com.stockflow.shared.testing.TestcontainersIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,9 +38,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
 @Transactional
-class AuthControllerIntegrationTest {
+class AuthControllerIntegrationTest extends TestcontainersIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -78,17 +77,17 @@ class AuthControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.tenant.id").isNumber())
-                .andExpect(jsonPath("$.tenant.name").value("Test Company"))
-                .andExpect(jsonPath("$.tenant.slug").value("test-company"))
-                .andExpect(jsonPath("$.user.id").isNumber())
-                .andExpect(jsonPath("$.user.name").value("Admin User"))
-                .andExpect(jsonPath("$.user.email").value("admin@testcompany.com"))
-                .andExpect(jsonPath("$.user.roles").value(hasItem("ADMIN")))
-                .andExpect(jsonPath("$.tokens.accessToken").isNotEmpty())
-                .andExpect(jsonPath("$.tokens.refreshToken").isNotEmpty())
-                .andExpect(jsonPath("$.tokens.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.tokens.expiresIn").value(900L)); // 15 minutes
+                .andExpect(jsonPath("$.data.tenant.id").isNumber())
+                .andExpect(jsonPath("$.data.tenant.name").value("Test Company"))
+                .andExpect(jsonPath("$.data.tenant.slug").value("test-company"))
+                .andExpect(jsonPath("$.data.user.id").isNumber())
+                .andExpect(jsonPath("$.data.user.name").value("Admin User"))
+                .andExpect(jsonPath("$.data.user.email").value("admin@testcompany.com"))
+                .andExpect(jsonPath("$.data.user.roles").value(hasItem("ADMIN")))
+                .andExpect(jsonPath("$.data.tokens.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.data.tokens.refreshToken").isNotEmpty())
+                .andExpect(jsonPath("$.data.tokens.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.data.tokens.expiresIn").value(900L)); // 15 minutes
     }
 
     @Test
@@ -151,13 +150,13 @@ class AuthControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").isNotEmpty())
-                .andExpect(jsonPath("$.refreshToken").isNotEmpty())
-                .andExpect(jsonPath("$.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.expiresIn").value(900L))
-                .andExpect(jsonPath("$.user.id").isNumber())
-                .andExpect(jsonPath("$.user.email").value("admin@testcompany.com"))
-                .andExpect(jsonPath("$.user.roles").value(hasItem("ADMIN")));
+                .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.data.refreshToken").isNotEmpty())
+                .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.data.expiresIn").value(900L))
+                .andExpect(jsonPath("$.data.user.id").isNumber())
+                .andExpect(jsonPath("$.data.user.email").value("admin@testcompany.com"))
+                .andExpect(jsonPath("$.data.user.roles").value(hasItem("ADMIN")));
     }
 
     @Test
@@ -210,7 +209,10 @@ class AuthControllerIntegrationTest {
                 .andReturn();
 
         String responseJson = signupResult.getResponse().getContentAsString();
-        SignupResponse signupResponse = objectMapper.readValue(responseJson, SignupResponse.class);
+        SignupResponse signupResponse = objectMapper.treeToValue(
+            objectMapper.readTree(responseJson).get("data"),
+            SignupResponse.class
+        );
         String refreshToken = signupResponse.tokens().refreshToken();
 
         // Act - Refresh token
@@ -220,10 +222,10 @@ class AuthControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(refreshRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").isNotEmpty())
-                .andExpect(jsonPath("$.refreshToken").isNotEmpty())
-                .andExpect(jsonPath("$.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.expiresIn").value(900L));
+                .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.data.refreshToken").isNotEmpty())
+                .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.data.expiresIn").value(900L));
     }
 
     @Test
@@ -245,7 +247,10 @@ class AuthControllerIntegrationTest {
                 .andReturn();
 
         String responseJson = signupResult.getResponse().getContentAsString();
-        SignupResponse signupResponse = objectMapper.readValue(responseJson, SignupResponse.class);
+        SignupResponse signupResponse = objectMapper.treeToValue(
+            objectMapper.readTree(responseJson).get("data"),
+            SignupResponse.class
+        );
         String refreshToken = signupResponse.tokens().refreshToken();
 
         // Act - Logout
@@ -286,17 +291,20 @@ class AuthControllerIntegrationTest {
                 .andReturn();
 
         String responseJson = signupResult.getResponse().getContentAsString();
-        SignupResponse signupResponse = objectMapper.readValue(responseJson, SignupResponse.class);
+        SignupResponse signupResponse = objectMapper.treeToValue(
+            objectMapper.readTree(responseJson).get("data"),
+            SignupResponse.class
+        );
         String accessToken = signupResponse.tokens().accessToken();
 
         // Act & Assert - Get current tenant
         mockMvc.perform(get("/api/v1/tenants/me")
                 .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.name").value("Test Company"))
-                .andExpect(jsonPath("$.slug").value("test-company"))
-                .andExpect(jsonPath("$.isActive").value(true));
+                .andExpect(jsonPath("$.data.id").isNumber())
+                .andExpect(jsonPath("$.data.name").value("Test Company"))
+                .andExpect(jsonPath("$.data.slug").value("test-company"))
+                .andExpect(jsonPath("$.data.isActive").value(true));
     }
 
     @Test

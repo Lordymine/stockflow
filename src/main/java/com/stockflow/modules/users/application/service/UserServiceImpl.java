@@ -1,14 +1,13 @@
 package com.stockflow.modules.users.application.service;
 
 import com.stockflow.modules.users.application.dto.*;
-import com.stockflow.modules.users.domain.model.Branch;
+import com.stockflow.modules.branches.domain.model.Branch;
 import com.stockflow.modules.users.domain.model.Role;
 import com.stockflow.modules.users.domain.model.RoleEnum;
 import com.stockflow.modules.users.domain.model.User;
-import com.stockflow.modules.users.domain.repository.BranchRepository;
+import com.stockflow.modules.branches.domain.repository.BranchRepository;
 import com.stockflow.modules.users.domain.repository.RoleRepository;
 import com.stockflow.modules.users.domain.repository.UserRepository;
-import com.stockflow.shared.application.dto.PaginationResponse;
 import com.stockflow.shared.domain.exception.ConflictException;
 import com.stockflow.shared.domain.exception.NotFoundException;
 import com.stockflow.shared.domain.exception.UnauthorizedException;
@@ -109,7 +108,7 @@ public class UserServiceImpl implements UserService {
     public UserResponse getUserById(Long userId) {
         Long tenantId = TenantContext.requireTenantId();
 
-        User user = userRepository.findByIdAndTenantId(userId, tenantId)
+        User user = userRepository.findByIdAndTenantIdIncludingInactive(userId, tenantId)
             .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND",
                 "User not found with ID: " + userId));
 
@@ -118,22 +117,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public PaginationResponse<UserResponse> listUsers(Pageable pageable) {
+    public Page<UserResponse> listUsers(Pageable pageable) {
         Long tenantId = TenantContext.requireTenantId();
 
         Page<User> users = userRepository.findAllByTenantId(tenantId, pageable);
-
-        List<UserResponse> userResponses = users.getContent().stream()
-            .map(this::mapToUserResponse)
-            .collect(Collectors.toList());
-
-        return new PaginationResponse<>(
-            userResponses,
-            users.getTotalElements(),
-            users.getNumber(),
-            users.getTotalPages(),
-            users.getSize()
-        );
+        return users.map(this::mapToUserResponse);
     }
 
     @Override

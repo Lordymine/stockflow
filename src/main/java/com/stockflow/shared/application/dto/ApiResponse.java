@@ -3,7 +3,6 @@ package com.stockflow.shared.application.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 
-import java.util.Map;
 
 /**
  * Standard API response envelope for successful operations.
@@ -36,7 +35,7 @@ public class ApiResponse<T> {
     private final T data;
 
     @Schema(description = "Additional metadata")
-    private final Map<String, Object> meta;
+    private final Object meta;
 
     /**
      * Creates a new API response with success flag set to true.
@@ -57,7 +56,7 @@ public class ApiResponse<T> {
      * @param <T>  the type of data
      * @return a new ApiResponse instance
      */
-    public static <T> ApiResponse<T> of(T data, Map<String, Object> meta) {
+    public static <T> ApiResponse<T> of(T data, Object meta) {
         return new ApiResponse<>(true, data, meta);
     }
 
@@ -71,7 +70,7 @@ public class ApiResponse<T> {
         return new ApiResponse<>(true, null, null);
     }
 
-    private ApiResponse(boolean success, T data, Map<String, Object> meta) {
+    private ApiResponse(boolean success, T data, Object meta) {
         this.success = success;
         this.data = data;
         this.meta = meta;
@@ -85,7 +84,7 @@ public class ApiResponse<T> {
         return data;
     }
 
-    public Map<String, Object> getMeta() {
+    public Object getMeta() {
         return meta;
     }
 }

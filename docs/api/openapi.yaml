@@ -119,7 +119,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthSignupResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/AuthSignupResponse'
+                  meta:
+                    type: object
         '400':
           $ref: '#/components/responses/ErrorResponse'
         '409':
@@ -311,7 +319,37 @@ paths:
                     $ref: '#/components/schemas/User'
                   meta:
                     type: object
-        '403':
+          '403':
+            $ref: '#/components/responses/ErrorResponse'
+  /api/v1/users/change-password:
+    post:
+      tags: [Users]
+      summary: Change password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    nullable: true
+                  meta:
+                    type: object
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
           $ref: '#/components/responses/ErrorResponse'
 
   /api/v1/branches:
@@ -476,6 +514,31 @@ paths:
                   meta:
                     $ref: '#/components/schemas/PageMeta'
   /api/v1/categories/{id}:
+    get:
+      tags: [Catalog]
+      summary: Get category by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Category'
+                  meta:
+                    type: object
     put:
       tags: [Catalog]
       summary: Update category
@@ -507,6 +570,32 @@ paths:
                     $ref: '#/components/schemas/Category'
                   meta:
                     type: object
+    delete:
+      tags: [Catalog]
+      summary: Delete category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    nullable: true
+                  meta:
+                    type: object
 
   /api/v1/products:
     post:
@@ -535,18 +624,47 @@ paths:
                     type: object
         '400':
           $ref: '#/components/responses/ErrorResponse'
-    get:
-      tags: [Catalog]
-      summary: List products
-      parameters:
-        - name: search
-          in: query
-          schema:
-            type: string
-        - name: page
-          in: query
-          schema:
-            type: integer
+      get:
+        tags: [Catalog]
+        summary: List products
+        parameters:
+          - name: search
+            in: query
+            schema:
+              type: string
+          - name: categoryId
+            in: query
+            schema:
+              type: integer
+              format: int64
+          - name: minPrice
+            in: query
+            schema:
+              type: number
+              format: double
+          - name: maxPrice
+            in: query
+            schema:
+              type: number
+              format: double
+          - name: isActive
+            in: query
+            schema:
+              type: boolean
+          - name: sortBy
+            in: query
+            schema:
+              type: string
+              enum: [name, salePrice, createdAt, sku]
+          - name: sortOrder
+            in: query
+            schema:
+              type: string
+              enum: [ASC, DESC]
+          - name: page
+            in: query
+            schema:
+              type: integer
             default: 0
         - name: size
           in: query
@@ -1116,6 +1234,15 @@ components:
       properties:
         isActive:
           type: boolean
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
     User:
       type: object
       properties:

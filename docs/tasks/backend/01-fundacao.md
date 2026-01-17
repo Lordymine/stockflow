@@ -9,8 +9,8 @@ DoD:
 ## FND-02 Estrutura modular e limites
 DoD:
 - Pacotes por dominio: auth, tenants, users, branches, catalog, inventory, dashboard.
-- Camadas: domain, application, infra (web/persistence/security).
-- Regra de dependencia documentada (domain nao depende de infra).
+- Camadas: domain, application, infrastructure (web/persistence/security).
+- Regra de dependencia documentada (domain nao depende de infrastructure).
 
 ## FND-03 Shared-kernel e contratos
 DoD:

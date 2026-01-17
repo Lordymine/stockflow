@@ -40,9 +40,9 @@ public class AuthController {
      */
     @PostMapping("/login")
     @Operation(summary = "User login", description = "Authenticate with email and password to receive tokens")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.of(response));
     }
 
     /**
@@ -53,9 +53,9 @@ public class AuthController {
      */
     @PostMapping("/refresh")
     @Operation(summary = "Refresh token", description = "Obtain a new access token using a refresh token")
-    public ResponseEntity<RefreshTokenResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<ApiResponse<RefreshTokenResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         RefreshTokenResponse response = authService.refreshToken(request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.of(response));
     }
 
     /**
@@ -81,8 +81,8 @@ public class AuthController {
      */
     @PostMapping("/signup")
     @Operation(summary = "Tenant signup", description = "Register a new tenant and admin user")
-    public ResponseEntity<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
+    public ResponseEntity<ApiResponse<SignupResponse>> signup(@Valid @RequestBody SignupRequest request) {
         SignupResponse response = authService.signup(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.of(response));
     }
 }

@@ -3,7 +3,6 @@ package com.stockflow.modules.catalog.domain.model;
 import com.stockflow.shared.domain.model.BaseEntity;
 import jakarta.persistence.*;
 import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.Where;
 import java.util.Objects;
 
 /**
@@ -12,7 +11,7 @@ import java.util.Objects;
  * <p>Categories represent hierarchical groupings for products within a tenant.
  * They provide a way to organize and classify products for better navigation and management.</p>
  *
- * <p><strong>Soft Delete:</strong> Uses @SQLDelete and @Where annotations for soft delete functionality.
+ * <p><strong>Soft Delete:</strong> Uses @SQLDelete for soft delete functionality.
  * When a category is "deleted", it's marked as inactive (is_active = false) instead of being removed
  * from the database. This maintains data integrity and allows for audit trails.</p>
  *
@@ -25,7 +24,6 @@ import java.util.Objects;
 @Entity
 @Table(name = "categories")
 @SQLDelete(sql = "UPDATE categories SET is_active = false WHERE id = ?")
-@Where(clause = "is_active = true")
 public class Category extends BaseEntity {
 
     /**

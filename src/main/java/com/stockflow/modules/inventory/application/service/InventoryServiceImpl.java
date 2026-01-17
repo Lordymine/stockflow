@@ -1,9 +1,12 @@
 package com.stockflow.modules.inventory.application.service;
 
+import com.stockflow.modules.catalog.domain.model.Product;
 import com.stockflow.modules.catalog.domain.repository.ProductRepository;
+import com.stockflow.modules.branches.domain.model.Branch;
 import com.stockflow.modules.inventory.application.dto.BranchStockResponse;
 import com.stockflow.modules.inventory.application.dto.StockMovementRequest;
 import com.stockflow.modules.inventory.application.dto.StockMovementResponse;
+import com.stockflow.modules.inventory.application.dto.TransferResult;
 import com.stockflow.modules.inventory.application.dto.TransferStockRequest;
 import com.stockflow.modules.inventory.application.mapper.InventoryMapper;
 import com.stockflow.modules.inventory.domain.model.BranchProductStock;
@@ -12,11 +15,16 @@ import com.stockflow.modules.inventory.domain.model.MovementType;
 import com.stockflow.modules.inventory.domain.model.StockMovement;
 import com.stockflow.modules.inventory.domain.repository.BranchProductStockRepository;
 import com.stockflow.modules.inventory.domain.repository.StockMovementRepository;
-import com.stockflow.modules.users.domain.repository.BranchRepository;
+import com.stockflow.modules.branches.domain.repository.BranchRepository;
+import com.stockflow.modules.users.domain.model.RoleEnum;
 import com.stockflow.shared.domain.exception.InsufficientStockException;
+import com.stockflow.shared.domain.exception.ForbiddenException;
 import com.stockflow.shared.domain.exception.NotFoundException;
 import com.stockflow.shared.domain.exception.ValidationException;
+import com.stockflow.shared.infrastructure.cache.CacheConfig;
+import com.stockflow.shared.infrastructure.security.CustomUserDetails;
 import com.stockflow.shared.infrastructure.security.TenantContext;
+import org.springframework.cache.annotation.CacheEvict;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -135,12 +143,19 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {
+            CacheConfig.DASHBOARD_OVERVIEW,
+            CacheConfig.DASHBOARD_BRANCH,
+            CacheConfig.TOP_PRODUCTS
+    }, allEntries = true)
     public StockMovementResponse createMovement(StockMovementRequest request) {
         logger.info("Creating stock movement: branch={}, product={}, type={}, reason={}, quantity={}",
             request.branchId(), request.productId(), request.type(), request.reason(), request.quantity());
 
         Long tenantId = TenantContext.getTenantId();
         Long userId = getCurrentUserId();
+
+        validateStaffPermissions(request);
 
         // Validate branch exists and belongs to tenant
         validateBranchExists(request.branchId(), tenantId);
@@ -171,7 +186,7 @@ public class InventoryServiceImpl implements InventoryService {
         } catch (OptimisticLockingFailureException e) {
             logger.error("Optimistic locking failure for stock: branch={}, product={}",
                 request.branchId(), request.productId());
-            throw new ValidationException("CONCURRENT_MODIFICATION",
+            throw new ValidationException("STOCK_CONCURRENT_MODIFICATION",
                 "Stock was modified by another transaction. Please retry.");
         }
 
@@ -182,6 +197,11 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {
+            CacheConfig.DASHBOARD_OVERVIEW,
+            CacheConfig.DASHBOARD_BRANCH,
+            CacheConfig.TOP_PRODUCTS
+    }, allEntries = true)
     public TransferResult transferStock(TransferStockRequest request) {
         logger.info("Transferring stock: sourceBranch={}, destBranch={}, product={}, quantity={}",
             request.sourceBranchId(), request.destinationBranchId(), request.productId(), request.quantity());
@@ -191,7 +211,7 @@ public class InventoryServiceImpl implements InventoryService {
 
         // Validate source and destination are different
         if (request.sourceBranchId().equals(request.destinationBranchId())) {
-            throw new ValidationException("INVALID_TRANSFER",
+            throw new ValidationException("TRANSFER_SAME_BRANCH",
                 "Source and destination branches cannot be the same");
         }
 
@@ -228,39 +248,30 @@ public class InventoryServiceImpl implements InventoryService {
 
         logger.info("Stock transfer completed successfully");
 
-        return new TransferResult(fromMovement, toMovement);
+        return new TransferResult(fromMovement.id(), toMovement.id());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<StockMovementResponse> getMovementHistory(Long branchId, Long productId,
-                                                           Pageable pageable) {
-        logger.debug("Getting movement history for branch {} and product {}", branchId, productId);
+    public Page<StockMovementResponse> getMovementsByBranch(Long branchId,
+                                                            Long productId,
+                                                            MovementType type,
+                                                            MovementReason reason,
+                                                            Pageable pageable) {
+        logger.debug("Getting movement history for branch {} with filters", branchId);
 
         Long tenantId = TenantContext.getTenantId();
 
         // Validate branch exists and belongs to tenant
         validateBranchExists(branchId, tenantId);
 
-        // Validate product exists and belongs to tenant
-        validateProductExists(productId, tenantId);
+        if (productId != null) {
+            validateProductExistsIncludingInactive(productId, tenantId);
+        }
 
-        Page<StockMovement> movements = movementRepository.findByTenantIdAndBranchIdAndProductId(
-            branchId, productId, tenantId, pageable
+        Page<StockMovement> movements = movementRepository.findByBranchWithFilters(
+            branchId, tenantId, productId, type, reason, pageable
         );
-
-        logger.debug("Found {} movements", movements.getTotalElements());
-
-        return movements.map(inventoryMapper::toResponse);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<StockMovementResponse> getAllMovements(Pageable pageable) {
-        logger.debug("Getting all movements for tenant");
-
-        Long tenantId = TenantContext.getTenantId();
-        Page<StockMovement> movements = movementRepository.findByTenantId(tenantId, pageable);
 
         logger.debug("Found {} movements", movements.getTotalElements());
 
@@ -277,9 +288,14 @@ public class InventoryServiceImpl implements InventoryService {
      * @throws NotFoundException if branch not found
      */
     private void validateBranchExists(Long branchId, Long tenantId) {
-        branchRepository.findByIdAndTenantId(branchId, tenantId)
+        Branch branch = branchRepository.findByIdAndTenantIdIncludingInactive(branchId, tenantId)
             .orElseThrow(() -> new NotFoundException("BRANCH_NOT_FOUND",
                 "Branch not found with ID: " + branchId));
+
+        if (!branch.isActive()) {
+            throw new ValidationException("BRANCH_ACTIVE_REQUIRED",
+                "Branch must be active for this operation");
+        }
     }
 
     /**
@@ -290,9 +306,46 @@ public class InventoryServiceImpl implements InventoryService {
      * @throws NotFoundException if product not found
      */
     private void validateProductExists(Long productId, Long tenantId) {
-        productRepository.findByIdAndTenantId(productId, tenantId)
+        Product product = productRepository.findByIdAndTenantIdIncludingInactive(productId, tenantId)
             .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND",
                 "Product not found with ID: " + productId));
+
+        if (!product.isActive()) {
+            throw new ValidationException("PRODUCT_ACTIVE_REQUIRED",
+                "Product must be active for this operation");
+        }
+    }
+
+    private void validateProductExistsIncludingInactive(Long productId, Long tenantId) {
+        productRepository.findByIdAndTenantIdIncludingInactive(productId, tenantId)
+            .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND",
+                "Product not found with ID: " + productId));
+    }
+
+    private void validateStaffPermissions(StockMovementRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
+            return;
+        }
+
+        boolean isStaffOnly = userDetails.hasRole(RoleEnum.STAFF)
+            && !userDetails.hasRole(RoleEnum.ADMIN)
+            && !userDetails.hasRole(RoleEnum.MANAGER);
+
+        if (!isStaffOnly) {
+            return;
+        }
+
+        boolean allowedType = request.type() == MovementType.IN || request.type() == MovementType.OUT;
+        boolean allowedReason = request.reason() != MovementReason.ADJUSTMENT_IN
+            && request.reason() != MovementReason.ADJUSTMENT_OUT
+            && request.reason() != MovementReason.TRANSFER_IN
+            && request.reason() != MovementReason.TRANSFER_OUT;
+
+        if (!allowedType || !allowedReason) {
+            throw new ForbiddenException("INSUFFICIENT_PRIVILEGES",
+                "STAFF users can only create IN or OUT movements");
+        }
     }
 
     /**
@@ -363,9 +416,10 @@ public class InventoryServiceImpl implements InventoryService {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication != null && authentication.isAuthenticated()) {
-                // Assuming the user ID is stored in the principal
-                // This might need adjustment based on your security setup
                 Object principal = authentication.getPrincipal();
+                if (principal instanceof CustomUserDetails customUserDetails) {
+                    return customUserDetails.getUserId();
+                }
                 if (principal instanceof String) {
                     try {
                         return Long.parseLong((String) principal);
@@ -374,7 +428,6 @@ public class InventoryServiceImpl implements InventoryService {
                         return null;
                     }
                 }
-                // Add your custom user principal handling here
             }
         } catch (Exception e) {
             logger.warn("Could not get current user ID", e);

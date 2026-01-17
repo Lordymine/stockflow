@@ -1,5 +1,7 @@
 package com.stockflow.modules.inventory.domain.repository;
 
+import com.stockflow.modules.inventory.domain.model.MovementReason;
+import com.stockflow.modules.inventory.domain.model.MovementType;
 import com.stockflow.modules.inventory.domain.model.StockMovement;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,6 +44,29 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
     Page<StockMovement> findByBranchIdAndTenantId(@Param("branchId") Long branchId,
                                                    @Param("tenantId") Long tenantId,
                                                    Pageable pageable);
+
+    /**
+     * Finds stock movements for a branch with optional filters.
+     *
+     * @param branchId the branch ID
+     * @param tenantId the tenant ID
+     * @param productId optional product ID filter
+     * @param type optional movement type filter
+     * @param reason optional movement reason filter
+     * @param pageable pagination parameters
+     * @return page of stock movements
+     */
+    @Query("SELECT m FROM StockMovement m WHERE m.branchId = :branchId AND m.tenantId = :tenantId " +
+           "AND (:productId IS NULL OR m.productId = :productId) " +
+           "AND (:type IS NULL OR m.type = :type) " +
+           "AND (:reason IS NULL OR m.reason = :reason) " +
+           "ORDER BY m.createdAt DESC")
+    Page<StockMovement> findByBranchWithFilters(@Param("branchId") Long branchId,
+                                                @Param("tenantId") Long tenantId,
+                                                @Param("productId") Long productId,
+                                                @Param("type") MovementType type,
+                                                @Param("reason") MovementReason reason,
+                                                Pageable pageable);
 
     /**
      * Finds all stock movements for a specific product within a tenant with pagination.

@@ -1,286 +1,232 @@
 # Dashboard Module
 
-## Purpose
+## Overview
 
-Responsible for aggregating and presenting operational metrics and insights.
+The Dashboard module provides aggregated metrics and analytics for the StockFlow PRO system. It implements RF-010 from the PRD with Redis caching for performance optimization (ADR-0005).
 
-## Responsibilities
+## Architecture
 
-- Generate overview metrics
-- Calculate stock statistics
-- Identify low stock items
-- Track recent movements
-- Rank top products
-- Cache expensive computations
+### Domain Layer
 
-## Boundaries
+**Models:**
+- `DashboardMetrics` - Value object containing dashboard metrics (products count, low stock, movements)
+- `TopProductMovement` - Value object for top product movement statistics
 
-**This module DOES:**
-- Aggregate data from other modules
-- Calculate metrics and KPIs
-- Present summary views
-- Cache results for performance
+**Repository:**
+- `DashboardRepository` - Interface for dashboard data aggregation queries
+- `DashboardRepositoryImpl` - JPA implementation with optimized SQL queries
 
-**This module DOES NOT:**
-- Manage stock (delegated to Inventory module)
-- Manage products (delegated to Catalog module)
-- Manage branches (delegated to Branches module)
-- Perform business logic (delegates to domain modules)
+### Application Layer
 
-## API Endpoints
+**DTOs:**
+- `DashboardOverviewResponse` - Complete dashboard response with metrics and top products
 
-### GET /api/v1/dashboard/overview
-Get dashboard overview metrics.
+**Services:**
+- `DashboardService` - Interface for dashboard operations
+- `DashboardServiceImpl` - Implementation with Redis caching (@Cacheable)
+
+### Infrastructure Layer
+
+**Controllers:**
+- `DashboardController` - REST endpoints for dashboard operations
+
+## Features
+
+### 1. Dashboard Overview Metrics
+
+**Endpoint:** `GET /api/dashboard/overview?branchId={branchId}`
+
+**Metrics provided:**
+- Total active products for the tenant
+- Products with stock below minimum threshold
+- Total stock movements (all time)
+- Recent movements (last 7 days)
+- Top 10 most moved products
+
+**Cache Strategy:**
+- TTL: 5 minutes (300 seconds)
+- Cache key includes tenantId and optionally branchId
+- Automatically invalidated on stock movements
+
+### 2. Branch-Specific Dashboard
+
+**Endpoint:** `GET /api/dashboard/overview?branchId={branchId}`
+
+Provides the same metrics scoped to a specific branch, useful for:
+- Branch managers
+- Operational dashboards
+- Branch-level analytics
+
+## Cache Configuration
+
+### Cache Names
+
+```java
+DASHBOARD_OVERVIEW = "dashboardOverview"  // 5 minutes TTL
+DASHBOARD_BRANCH = "dashboardBranch"      // 5 minutes TTL
+TOP_PRODUCTS = "topProducts"              // 10 minutes TTL
+```
+
+### Cache Invalidation
+
+Cache is automatically evicted when:
+- Stock movements are created (`InventoryService.createMovement`)
+- Stock transfers are executed (`InventoryService.transferStock`)
+
+This ensures dashboard data remains near real-time while still benefiting from caching.
+
+## Performance Optimizations
+
+### Database Indexes Used
+
+The following indexes (defined in PRD v2.0) are leveraged:
+
+1. **Products:**
+   - `idx_products_tenant_active_name` - Fast filtering of active products
+   - `uk_tenant_sku` - Unique constraint for SKU lookup
+
+2. **Stock:**
+   - `uk_tenant_branch_product` - Fast stock lookups
+   - `idx_branch_product` - Branch-product queries
+
+3. **Movements:**
+   - `idx_movements_tenant_branch_date` - Recent movement queries
+   - `idx_tenant_product` - Product movement aggregations
+
+### Query Optimizations
+
+- Native SQL for optimal performance
+- Aggregations performed at database level
+- COALESCE for handling NULL values
+- Proper JOINs for efficient data retrieval
+
+## Security
+
+- All endpoints require authentication (JWT)
+- Data automatically scoped to current tenant
+- Tenant isolation enforced at all layers
+- Optional branchId parameter for branch-level filtering
+
+## API Documentation
+
+### Get Dashboard Overview
+
+```http
+GET /api/dashboard/overview
+Authorization: Bearer {jwt_token}
+```
 
 **Query Parameters:**
-- `branchId`: Optional branch filter (default: all accessible branches)
+- `branchId` (optional): Filter metrics by branch
 
 **Response:**
 ```json
 {
-  "success": true,
-  "data": {
-    "summary": {
-      "totalProducts": 250,
-      "activeProducts": 245,
-      "totalBranches": 5,
-      "lowStockItems": 12
-    },
-    "recentMovements": [
-      {
-        "id": 100,
-        "type": "IN",
-        "productName": "Wireless Mouse",
-        "branchName": "Main Warehouse",
-        "quantity": 100,
-        "reason": "PURCHASE",
-        "createdAt": "2024-01-16T09:30:00"
-      }
-    ],
-    "lowStockProducts": [
-      {
-        "productId": 5,
-        "productName": "USB-C Cable",
-        "sku": "CABLE-USB-C-001",
-        "totalStock": 3,
-        "minStock": 20,
-        "branchesAffected": [
-          {
-            "branchId": 1,
-            "branchName": "Main Warehouse",
-            "quantity": 3
-          }
-        ]
-      }
-    ],
-    "topProducts": [
-      {
-        "productId": 1,
-        "productName": "Wireless Mouse",
-        "sku": "MOUSE-WL-001",
-        "totalMovements": 150,
-        "totalQuantity": 5000
-      }
-    ],
-    "branchStockSummary": [
-      {
-        "branchId": 1,
-        "branchName": "Main Warehouse",
-        "totalProducts": 200,
-        "totalItems": 15000
-      }
-    ],
-    "generatedAt": "2024-01-16T10:30:00"
-  }
+  "metrics": {
+    "totalActiveProducts": 150,
+    "lowStockItems": 12,
+    "totalMovements": 5430,
+    "recentMovements": 230
+  },
+  "topProducts": [
+    {
+      "productId": 1,
+      "productName": "Wireless Mouse",
+      "productSku": "WM-001",
+      "movementCount": 45,
+      "totalQuantity": 320
+    }
+  ]
 }
 ```
 
-## Metrics
+## Implementation Details
 
-### Summary Metrics
-
-| Metric | Description | Source |
-|--------|-------------|--------|
-| `totalProducts` | Total active products in catalog | Catalog module |
-| `activeProducts` | Active products (isActive=true) | Catalog module |
-| `totalBranches` | Total accessible branches | Branches module |
-| `lowStockItems` | Products below minStock | Inventory module |
-
-### Recent Movements
-- Last 10 movements across all accessible branches
-- Ordered by date (most recent first)
-- Includes product and branch details
-
-### Low Stock Products
-- Products where total quantity < minStock
-- Shows affected branches
-- Ordered by severity (lowest first)
-
-### Top Products
-- Most moved products in last 30 days
-- Ordered by total movement count
-- Includes total quantity moved
-
-### Branch Stock Summary
-- Total products per branch
-- Total items (sum of quantities) per branch
-
-## Caching Strategy
-
-### Cache Configuration
-- TTL: 5 minutes (300 seconds)
-- Key pattern: `dashboard:overview:tenant:{tenantId}:branch:{branchId}`
-- Invalidation: On any stock movement or product update
-
-### Cache Implementation
-
-```java
-@Cacheable(
-    value = "dashboard",
-    key = "'overview:' + #tenantId + ':' + (#branchId ?: 'all')"
-)
-public DashboardOverviewDTO getOverview(Long tenantId, Long branchId) {
-    // Expensive computation
-    return computeDashboard(tenantId, branchId);
-}
-
-@CacheEvict(
-    value = "dashboard",
-    allEntries = true
-)
-public void invalidateCache() {
-    // Called on stock movements
-}
-```
-
-### Cache Keys Examples
+### Module Structure
 
 ```
-dashboard:overview:1:all         # All branches for tenant 1
-dashboard:overview:1:5           # Branch 5 for tenant 1
-dashboard:overview:2:all         # All branches for tenant 2
+modules/dashboard/
+├── domain/
+│   ├── model/
+│   │   ├── DashboardMetrics.java       # Value object for metrics
+│   │   └── TopProductMovement.java     # Value object for top products
+│   └── repository/
+│       └── DashboardRepository.java    # Repository interface
+├── application/
+│   ├── dto/
+│   │   └── DashboardOverviewResponse.java  # Response DTO
+│   └── service/
+│       ├── DashboardService.java       # Service interface
+│       └── DashboardServiceImpl.java   # Service with @Cacheable
+└── infrastructure/
+    ├── persistence/
+    │   └── DashboardRepositoryImpl.java # JPA implementation
+    └── web/
+        └── DashboardController.java    # REST controller
 ```
 
-## Performance Considerations
+### Key Design Decisions
 
-### Expensive Operations
+1. **Value Objects for Immutable Data**
+   - `DashboardMetrics` and `TopProductMovement` are immutable value objects
+   - Ensures thread-safety and prevents accidental modifications
 
-1. **Top Products Calculation**
-   - Requires aggregating movements from last 30 days
-   - Can be slow on systems with many movements
-   - Cached for 10 minutes separately
+2. **Aggressive Caching**
+   - Dashboard queries are expensive (multiple aggregations)
+   - Cache TTL of 5 minutes balances freshness and performance
+   - Top products cached longer (10 minutes) as they change less frequently
 
-2. **Low Stock Detection**
-   - Requires checking all products across all branches
-   - Optimize with database indexes on (tenantId, branchId, productId)
-   - Cached with main overview
+3. **Cache Invalidation Strategy**
+   - `@CacheEvict` on `InventoryService` methods
+   - `allEntries = true` ensures complete cache cleanup
+   - Simplicity over granular invalidation (acceptable trade-off)
 
-3. **Movement Aggregation**
-   - Join movements with products and branches
-   - Index on (tenantId, branchId, createdAt) critical
-   - Limit to 10 most recent
-
-### Optimization Tips
-
-1. **Use Materialized Views** (for very large deployments)
-   - Pre-compute top products nightly
-   - Refresh incrementally
-
-2. **Batch Queries**
-   - Fetch all data in 3-4 queries
-   - Assemble in application layer
-
-3. **Denormalize**
-   - Store movement count on product table
-   - Update via triggers or events
-
-## Database Queries
-
-### Recent Movements
-```sql
-SELECT
-    m.id,
-    m.type,
-    m.reason,
-    m.quantity,
-    m.created_at,
-    p.name AS product_name,
-    p.sku,
-    b.name AS branch_name
-FROM stock_movements m
-JOIN products p ON m.product_id = p.id
-JOIN branches b ON m.branch_id = b.id
-WHERE m.tenant_id = :tenantId
-  AND (:branchId IS NULL OR m.branch_id = :branchId)
-ORDER BY m.created_at DESC
-LIMIT 10;
-```
-
-### Low Stock Products
-```sql
-SELECT
-    p.id AS product_id,
-    p.name AS product_name,
-    p.sku,
-    p.min_stock,
-    SUM(s.quantity) AS total_stock
-FROM products p
-LEFT JOIN branch_product_stock s ON p.id = s.product_id
-WHERE p.tenant_id = :tenantId
-  AND p.is_active = true
-  AND (:branchId IS NULL OR s.branch_id = :branchId)
-GROUP BY p.id, p.name, p.sku, p.min_stock
-HAVING SUM(s.quantity) < p.min_stock
-ORDER BY total_stock ASC;
-```
-
-### Top Products
-```sql
-SELECT
-    p.id AS product_id,
-    p.name AS product_name,
-    p.sku,
-    COUNT(m.id) AS total_movements,
-    SUM(m.quantity) AS total_quantity
-FROM products p
-JOIN stock_movements m ON p.id = m.product_id
-WHERE p.tenant_id = :tenantId
-  AND m.tenant_id = :tenantId
-  AND m.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-  AND (:branchId IS NULL OR m.branch_id = :branchId)
-GROUP BY p.id, p.name, p.sku
-ORDER BY total_movements DESC
-LIMIT 10;
-```
-
-## Security
-
-- Metrics filtered by tenant_id
-- Branch filter respects user's branch access
-- No cross-tenant data leakage
-- Cached data scoped by tenant
+4. **Native SQL for Performance**
+   - Complex aggregations optimized at database level
+   - Better performance than JPQL for aggregations
+   - Leverages database-specific optimizations
 
 ## Dependencies
 
-- **Catalog module**: For product data
-- **Inventory module**: For stock and movement data
-- **Branches module**: For branch data
-- **Tenants module**: For tenant isolation
-- **Shared kernel**: DTOs
-- **Redis**: For caching
+- Spring Data Redis - Cache implementation
+- Spring Cache - Abstraction for caching
+- JPA/Hibernate - Database queries
+- Jackson - JSON serialization
 
 ## Future Enhancements
 
-1. **Custom Date Ranges**
-   - Allow users to specify date ranges for metrics
+Potential improvements for future iterations:
 
-2. **Export Functionality**
-   - Export dashboard data as CSV/PDF
+1. **Additional Metrics:**
+   - Sales trends over time
+   - Inventory turnover ratio
+   - Branch performance comparison
+   - Product velocity analysis
 
-3. **Real-time Updates**
-   - WebSocket for live dashboard updates
+2. **Time-Series Data:**
+   - Historical metrics storage
+   - Trend analysis
+   - Predictive analytics
 
-4. **Advanced Analytics**
-   - Trends over time
-   - Forecasting
-   - Anomaly detection
+3. **Custom Dashboards:**
+   - User-configurable dashboards
+   - Saved filters and views
+   - Export functionality
+
+4. **Real-Time Updates:**
+   - WebSocket support for live updates
+   - Push notifications for critical alerts
+   - Real-time stock level monitoring
+
+## References
+
+- PRD RF-010 - Dashboard requirements
+- ADR-0005 - Cache and invalidation strategy
+- [CONVENCOES.md](../../../../../../../../docs/tasks/00-CONVENCOES.md) - Code conventions
+- Cache configuration in `shared/infrastructure/cache/CacheConfig.java`
+
+## Related Modules
+
+- **Catalog** - Provides product data
+- **Inventory** - Provides stock and movement data
+- **Shared** - Provides caching infrastructure

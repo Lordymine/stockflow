@@ -34,7 +34,6 @@ public interface ProductMapper {
      * @return the product entity
      */
     @Mapping(source = "tenantId", target = "tenantId")
-    @Mapping(source = "unitOfMeasure", target = "unitOfMeasure", qualifiedByName = "stringToEnum")
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
