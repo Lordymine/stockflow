@@ -34,7 +34,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * <ul>
  *   <li>{@code /api/v1/auth/login} - User login</li>
  *   <li>{@code /api/v1/auth/refresh} - Token refresh</li>
- *   <li>{@code /api/v1/auth/bootstrap} - Initial tenant setup</li>
+ *   <li>{@code /api/v1/auth/signup} - Tenant signup</li>
  *   <li>{@code /actuator/health} - Health check</li>
  *   <li>{@code /swagger-ui/**} - API documentation</li>
  *   <li>{@code /v3/api-docs/**} - OpenAPI spec</li>
@@ -75,7 +75,7 @@ public class SecurityConfig {
                     "/api/v1/auth/login",
                     "/api/v1/auth/refresh",
                     "/api/v1/auth/logout",
-                    "/api/v1/auth/bootstrap"
+                    "/api/v1/auth/signup"
                 ).permitAll()
 
                 // Public actuator endpoint

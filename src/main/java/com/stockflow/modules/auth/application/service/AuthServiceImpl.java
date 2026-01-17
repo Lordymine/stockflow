@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 /**
  * Implementation of authentication service.
  *
- * <p>Handles authentication, token management, and system bootstrap.</p>
+ * <p>Handles authentication, token management, and tenant signup.</p>
  */
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -203,14 +203,17 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public BootstrapResponse bootstrap(BootstrapRequest request) {
-        logger.info("System bootstrap initiated");
+    public SignupResponse signup(SignupRequest request) {
+        logger.info("Tenant signup initiated");
 
-        // Check if any tenants exist
-        long tenantCount = tenantRepository.countActiveTenants();
-        if (tenantCount > 0) {
-            throw new ConflictException("RESOURCE_ALREADY_EXISTS",
-                "System already initialized. Bootstrap is only available for initial setup.");
+        if (tenantRepository.existsBySlug(request.tenantSlug())) {
+            throw new ConflictException("TENANT_SLUG_ALREADY_EXISTS",
+                "Tenant slug already exists");
+        }
+
+        if (userRepository.existsActiveByEmail(request.adminEmail())) {
+            throw new ConflictException("USER_EMAIL_ALREADY_EXISTS",
+                "User with this email already exists");
         }
 
         // Create tenant
@@ -242,21 +245,21 @@ public class AuthServiceImpl implements AuthService {
         String accessToken = generateAccessToken(admin);
         String refreshToken = generateRefreshToken(admin);
 
-        logger.info("System bootstrap completed successfully");
+        logger.info("Tenant signup completed successfully");
 
-        return new BootstrapResponse(
-            new BootstrapResponse.TenantInfo(
+        return new SignupResponse(
+            new SignupResponse.TenantInfo(
                 tenant.getId(),
                 tenant.getName(),
                 tenant.getSlug()
             ),
-            new BootstrapResponse.UserInfo(
+            new SignupResponse.UserInfo(
                 admin.getId(),
                 admin.getName(),
                 admin.getEmail(),
                 getRoleNames(admin)
             ),
-            new BootstrapResponse.TokenInfo(
+            new SignupResponse.TokenInfo(
                 accessToken,
                 refreshToken,
                 "Bearer",

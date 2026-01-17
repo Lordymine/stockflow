@@ -34,27 +34,39 @@ Responsible for tenant (company) management and multi-tenancy isolation.
 
 ## API Endpoints
 
-### POST /api/v1/tenants
-Create a new tenant (company).
+### POST /api/v1/auth/signup
+Public signup to create a new tenant (company) and admin user.
 
 **Request:**
 ```json
 {
-  "name": "Acme Corporation",
-  "slug": "acme-corp"
+  "tenantName": "Acme Corporation",
+  "tenantSlug": "acme-corp",
+  "adminName": "Admin User",
+  "adminEmail": "admin@acme.com",
+  "adminPassword": "SecurePassword123!"
 }
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "data": {
+  "tenant": {
     "id": 1,
     "name": "Acme Corporation",
-    "slug": "acme-corp",
-    "isActive": true,
-    "createdAt": "2024-01-16T10:30:00"
+    "slug": "acme-corp"
+  },
+  "user": {
+    "id": 1,
+    "name": "Admin User",
+    "email": "admin@acme.com",
+    "roles": ["ADMIN"]
+  },
+  "tokens": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "tokenType": "Bearer",
+    "expiresIn": 900
   }
 }
 ```

@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
  *   <li>User login</li>
  *   <li>Token refresh</li>
  *   <li>User logout</li>
- *   <li>System bootstrap</li>
+ *   <li>Tenant signup</li>
  * </ul>
  */
 @RestController
@@ -74,16 +74,15 @@ public class AuthController {
     }
 
     /**
-     * Bootstraps the system with initial tenant and admin user.
-     * Only valid when no tenants exist yet.
+     * Registers a new tenant with an admin user.
      *
-     * @param request the bootstrap request
-     * @return bootstrap response
+     * @param request the signup request
+     * @return signup response
      */
-    @PostMapping("/bootstrap")
-    @Operation(summary = "System bootstrap", description = "Initialize the system with first tenant and admin user")
-    public ResponseEntity<BootstrapResponse> bootstrap(@Valid @RequestBody BootstrapRequest request) {
-        BootstrapResponse response = authService.bootstrap(request);
+    @PostMapping("/signup")
+    @Operation(summary = "Tenant signup", description = "Register a new tenant and admin user")
+    public ResponseEntity<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
+        SignupResponse response = authService.signup(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

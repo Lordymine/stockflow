@@ -13,7 +13,7 @@ Garantir comportamento correto para auth, catalogo, inventory e dashboard.
 - Auth: refresh token hash e revogacao.
 
 ## Integracao (Testcontainers)
-- Tenants: bootstrap cria tenant e admin inicial.
+- Tenants: signup cria tenant e admin inicial.
 - Auth: login valido retorna access/refresh e claims.
 - Auth: refresh invalido retorna `AUTH_TOKEN_EXPIRED`.
 - RBAC: acesso negado para role sem permissao.

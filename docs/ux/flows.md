@@ -1,9 +1,9 @@
 # Fluxos de UX e estados
 
-## Bootstrap inicial (setup)
+## Signup inicial (setup)
 1) Usuario cria tenant com admin inicial.
-2) Cria filial inicial no mesmo fluxo.
-3) Em sucesso, redirecionar para login.
+2) Em sucesso, redirecionar para login.
+3) Admin cria filial inicial apos login.
 
 ## Login
 1) Usuario informa email e senha.

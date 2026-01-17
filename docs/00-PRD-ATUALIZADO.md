@@ -419,12 +419,12 @@ Entregar um sistema de estoque pronto para uso, com:
 ## 9) API (Endpoints)
 
 ### 9.1 Auth
+- `POST /api/v1/auth/signup`
 - `POST /api/v1/auth/login`
 - `POST /api/v1/auth/refresh`
 - `POST /api/v1/auth/logout`
 
 ### 9.2 Tenants
-- `POST /api/v1/tenants` (criação inicial)
 - `GET /api/v1/tenants/me` (dados do tenant atual)
 
 ### 9.3 Users (ADMIN)

@@ -39,6 +39,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(@Param("email") String email);
 
     /**
+     * Checks if an active user with the given email exists across all tenants.
+     *
+     * @param email the email to check
+     * @return true if an active user with the email exists
+     */
+    @Query("SELECT COUNT(u) > 0 FROM User u WHERE u.email = :email AND u.isActive = true")
+    boolean existsActiveByEmail(@Param("email") String email);
+
+    /**
      * Checks if a user with the given email exists in the tenant.
      *
      * @param email    the email to check

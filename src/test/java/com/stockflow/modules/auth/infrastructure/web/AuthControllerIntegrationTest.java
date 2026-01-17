@@ -1,13 +1,11 @@
 package com.stockflow.modules.auth.infrastructure.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stockflow.modules.auth.application.dto.BootstrapRequest;
 import com.stockflow.modules.auth.application.dto.LoginRequest;
-import com.stockflow.modules.auth.application.dto.LoginResponse;
 import com.stockflow.modules.auth.application.dto.RefreshTokenRequest;
 import com.stockflow.modules.auth.application.dto.LogoutRequest;
-import com.stockflow.modules.auth.application.dto.RefreshTokenResponse;
-import com.stockflow.modules.auth.application.dto.BootstrapResponse;
+import com.stockflow.modules.auth.application.dto.SignupRequest;
+import com.stockflow.modules.auth.application.dto.SignupResponse;
 import com.stockflow.modules.tenant.domain.repository.TenantRepository;
 import com.stockflow.modules.users.domain.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +21,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -32,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *
  * <p>Tests the complete authentication flow:</p>
  * <ul>
- *   <li>Bootstrap (initial tenant and admin creation)</li>
+ *   <li>Signup (tenant and admin creation)</li>
  *   <li>Login with valid credentials</li>
  *   <li>Login with invalid credentials</li>
  *   <li>Token refresh</li>
@@ -65,10 +62,10 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/auth/bootstrap - Should create initial tenant and admin")
-    void testBootstrap_Success() throws Exception {
+    @DisplayName("POST /api/v1/auth/signup - Should create tenant and admin")
+    void testSignup_Success() throws Exception {
         // Arrange
-        BootstrapRequest request = new BootstrapRequest(
+        SignupRequest request = new SignupRequest(
             "Test Company",
             "test-company",
             "Admin User",
@@ -77,7 +74,7 @@ class AuthControllerIntegrationTest {
         );
 
         // Act & Assert
-        mockMvc.perform(post("/api/v1/auth/bootstrap")
+        mockMvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -95,10 +92,10 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/auth/bootstrap - Should fail when tenant already exists")
-    void testBootstrap_TenantAlreadyExists() throws Exception {
+    @DisplayName("POST /api/v1/auth/signup - Should fail when tenant slug already exists")
+    void testSignup_TenantSlugAlreadyExists() throws Exception {
         // Arrange - Create initial tenant
-        BootstrapRequest firstRequest = new BootstrapRequest(
+        SignupRequest firstRequest = new SignupRequest(
             "Test Company",
             "test-company",
             "Admin User",
@@ -106,33 +103,31 @@ class AuthControllerIntegrationTest {
             "SecurePassword123!"
         );
 
-        mockMvc.perform(post("/api/v1/auth/bootstrap")
+        mockMvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(firstRequest)))
                 .andExpect(status().isCreated());
 
-        // Act & Assert - Try to bootstrap again
-        BootstrapRequest secondRequest = new BootstrapRequest(
-            "Another Company",
-            "another-company",
-            "Another Admin",
-            "admin@anothercompany.com",
-            "SecurePassword456!"
-        );
-
-        mockMvc.perform(post("/api/v1/auth/bootstrap")
+        // Act & Assert - Try to sign up with the same slug
+        mockMvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(secondRequest)))
+                .content(objectMapper.writeValueAsString(new SignupRequest(
+                    "Another Company",
+                    "test-company",
+                    "Another Admin",
+                    "admin@anothercompany.com",
+                    "SecurePassword456!"
+                ))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("RESOURCE_ALREADY_EXISTS"));
+                .andExpect(jsonPath("$.error.code").value("TENANT_SLUG_ALREADY_EXISTS"));
     }
 
     @Test
     @DisplayName("POST /api/v1/auth/login - Should authenticate valid credentials")
     void testLogin_Success() throws Exception {
-        // Arrange - Bootstrap first
-        BootstrapRequest bootstrapRequest = new BootstrapRequest(
+        // Arrange - Signup first
+        SignupRequest signupRequest = new SignupRequest(
             "Test Company",
             "test-company",
             "Admin User",
@@ -140,9 +135,9 @@ class AuthControllerIntegrationTest {
             "SecurePassword123!"
         );
 
-        MvcResult result = mockMvc.perform(post("/api/v1/auth/bootstrap")
+        MvcResult result = mockMvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(bootstrapRequest)))
+                .content(objectMapper.writeValueAsString(signupRequest)))
                 .andExpect(status().isCreated())
                 .andReturn();
 
@@ -168,8 +163,8 @@ class AuthControllerIntegrationTest {
     @Test
     @DisplayName("POST /api/v1/auth/login - Should fail with invalid credentials")
     void testLogin_InvalidCredentials() throws Exception {
-        // Arrange - Bootstrap first
-        BootstrapRequest bootstrapRequest = new BootstrapRequest(
+        // Arrange - Signup first
+        SignupRequest signupRequest = new SignupRequest(
             "Test Company",
             "test-company",
             "Admin User",
@@ -177,9 +172,9 @@ class AuthControllerIntegrationTest {
             "SecurePassword123!"
         );
 
-        mockMvc.perform(post("/api/v1/auth/bootstrap")
+        mockMvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(bootstrapRequest)))
+                .content(objectMapper.writeValueAsString(signupRequest)))
                 .andExpect(status().isCreated());
 
         // Act & Assert - Login with wrong password
@@ -199,8 +194,8 @@ class AuthControllerIntegrationTest {
     @Test
     @DisplayName("POST /api/v1/auth/refresh - Should refresh access token")
     void testRefreshToken_Success() throws Exception {
-        // Arrange - Bootstrap and get refresh token
-        BootstrapRequest bootstrapRequest = new BootstrapRequest(
+        // Arrange - Signup and get refresh token
+        SignupRequest signupRequest = new SignupRequest(
             "Test Company",
             "test-company",
             "Admin User",
@@ -208,15 +203,15 @@ class AuthControllerIntegrationTest {
             "SecurePassword123!"
         );
 
-        MvcResult bootstrapResult = mockMvc.perform(post("/api/v1/auth/bootstrap")
+        MvcResult signupResult = mockMvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(bootstrapRequest)))
+                .content(objectMapper.writeValueAsString(signupRequest)))
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        String responseJson = bootstrapResult.getResponse().getContentAsString();
-        BootstrapResponse bootstrapResponse = objectMapper.readValue(responseJson, BootstrapResponse.class);
-        String refreshToken = bootstrapResponse.tokens().refreshToken();
+        String responseJson = signupResult.getResponse().getContentAsString();
+        SignupResponse signupResponse = objectMapper.readValue(responseJson, SignupResponse.class);
+        String refreshToken = signupResponse.tokens().refreshToken();
 
         // Act - Refresh token
         RefreshTokenRequest refreshRequest = new RefreshTokenRequest(refreshToken);
@@ -234,8 +229,8 @@ class AuthControllerIntegrationTest {
     @Test
     @DisplayName("POST /api/v1/auth/logout - Should revoke refresh token")
     void testLogout_Success() throws Exception {
-        // Arrange - Bootstrap and get refresh token
-        BootstrapRequest bootstrapRequest = new BootstrapRequest(
+        // Arrange - Signup and get refresh token
+        SignupRequest signupRequest = new SignupRequest(
             "Test Company",
             "test-company",
             "Admin User",
@@ -243,15 +238,15 @@ class AuthControllerIntegrationTest {
             "SecurePassword123!"
         );
 
-        MvcResult bootstrapResult = mockMvc.perform(post("/api/v1/auth/bootstrap")
+        MvcResult signupResult = mockMvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(bootstrapRequest)))
+                .content(objectMapper.writeValueAsString(signupRequest)))
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        String responseJson = bootstrapResult.getResponse().getContentAsString();
-        BootstrapResponse bootstrapResponse = objectMapper.readValue(responseJson, BootstrapResponse.class);
-        String refreshToken = bootstrapResponse.tokens().refreshToken();
+        String responseJson = signupResult.getResponse().getContentAsString();
+        SignupResponse signupResponse = objectMapper.readValue(responseJson, SignupResponse.class);
+        String refreshToken = signupResponse.tokens().refreshToken();
 
         // Act - Logout
         LogoutRequest logoutRequest = new LogoutRequest(refreshToken);
@@ -275,8 +270,8 @@ class AuthControllerIntegrationTest {
     @Test
     @DisplayName("GET /api/v1/tenants/me - Should get current tenant")
     void testGetCurrentTenant_Success() throws Exception {
-        // Arrange - Bootstrap and get access token
-        BootstrapRequest bootstrapRequest = new BootstrapRequest(
+        // Arrange - Signup and get access token
+        SignupRequest signupRequest = new SignupRequest(
             "Test Company",
             "test-company",
             "Admin User",
@@ -284,15 +279,15 @@ class AuthControllerIntegrationTest {
             "SecurePassword123!"
         );
 
-        MvcResult bootstrapResult = mockMvc.perform(post("/api/v1/auth/bootstrap")
+        MvcResult signupResult = mockMvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(bootstrapRequest)))
+                .content(objectMapper.writeValueAsString(signupRequest)))
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        String responseJson = bootstrapResult.getResponse().getContentAsString();
-        BootstrapResponse bootstrapResponse = objectMapper.readValue(responseJson, BootstrapResponse.class);
-        String accessToken = bootstrapResponse.tokens().accessToken();
+        String responseJson = signupResult.getResponse().getContentAsString();
+        SignupResponse signupResponse = objectMapper.readValue(responseJson, SignupResponse.class);
+        String accessToken = signupResponse.tokens().accessToken();
 
         // Act & Assert - Get current tenant
         mockMvc.perform(get("/api/v1/tenants/me")

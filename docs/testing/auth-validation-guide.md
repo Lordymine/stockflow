@@ -67,9 +67,9 @@ Successfully applied 4 migrations
    http://localhost:8080/swagger-ui.html
    ```
 
-2. **Testar Bootstrap (Criação inicial de Tenant e Admin):**
+2. **Testar Signup (Cadastro de Tenant e Admin):**
    ```http
-   POST /api/v1/auth/bootstrap
+   POST /api/v1/auth/signup
    Content-Type: application/json
 
    {
@@ -200,8 +200,8 @@ mvn test jacoco:report
 ```
 
 **Testes esperados:**
-- ✅ `testBootstrap_Success` - Criação inicial de tenant e admin
-- ✅ `testBootstrap_TenantAlreadyExists` - Impede duplicação de tenant
+- ✅ `testSignup_Success` - Cadastro de tenant e admin
+- ✅ `testSignup_TenantSlugAlreadyExists` - Impede duplicação de slug de tenant
 - ✅ `testLogin_Success` - Login com credenciais válidas
 - ✅ `testLogin_InvalidCredentials` - Login falha com senha errada
 - ✅ `testRefreshToken_Success` - Renovação de token
@@ -274,7 +274,7 @@ SELECT id, tenant_id, user_id, expires_at, revoked_at FROM refresh_tokens;
 - [ ] Aplicação inicia sem erros
 - [ ] Migrations V001, V002, V003, V004 executadas com sucesso
 - [ ] Swagger UI acessível em http://localhost:8080/swagger-ui.html
-- [ ] Endpoint `/api/v1/auth/bootstrap` funciona (201)
+- [ ] Endpoint `/api/v1/auth/signup` funciona (201)
 - [ ] Endpoint `/api/v1/auth/login` funciona (200)
 - [ ] Endpoint `/api/v1/auth/refresh` funciona (200)
 - [ ] Endpoint `/api/v1/auth/logout` funciona (200)

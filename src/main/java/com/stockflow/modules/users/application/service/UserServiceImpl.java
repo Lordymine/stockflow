@@ -58,9 +58,9 @@ public class UserServiceImpl implements UserService {
         Long tenantId = TenantContext.requireTenantId();
 
         // Check if email already exists
-        if (userRepository.existsByEmailAndTenantId(request.email(), tenantId)) {
+        if (userRepository.existsActiveByEmail(request.email())) {
             throw new ConflictException("USER_EMAIL_ALREADY_EXISTS",
-                "User with this email already exists in the tenant");
+                "User with this email already exists");
         }
 
         // Create user

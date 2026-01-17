@@ -34,7 +34,7 @@ public interface TenantRepository extends JpaRepository<Tenant, Long> {
 
     /**
      * Finds the first active tenant.
-     * Used during bootstrap to verify if initialization is needed.
+     * Useful for operational checks across tenants.
      *
      * @return Optional containing the first active tenant if any exists
      */

@@ -80,7 +80,8 @@ All errors follow this standard format:
 | `RESOURCE_ALREADY_EXISTS` | Resource already exists | Attempt to create duplicate resource |
 | `PRODUCT_SKU_ALREADY_EXISTS` | Product SKU already exists | SKU must be unique per tenant |
 | `BRANCH_CODE_ALREADY_EXISTS` | Branch code already exists | Branch code must be unique per tenant |
-| `USER_EMAIL_ALREADY_EXISTS` | Email already exists | Email must be unique per tenant |
+| `USER_EMAIL_ALREADY_EXISTS` | Email already exists | Email must be unique across tenants |
+| `TENANT_SLUG_ALREADY_EXISTS` | Tenant slug already exists | Slug must be unique |
 | `STOCK_INSUFFICIENT` | Insufficient stock | Not enough stock for this operation |
 | `STOCK_CONCURRENT_MODIFICATION` | Stock was modified by another user | Optimistic locking failure |
 | `CONCURRENT_MODIFICATION` | Resource was modified by another user | Generic optimistic locking failure |

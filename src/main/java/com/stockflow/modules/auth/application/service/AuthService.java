@@ -10,7 +10,7 @@ import com.stockflow.modules.auth.application.dto.*;
  *   <li>User login with email and password</li>
  *   <li>Token refresh using refresh token</li>
  *   <li>User logout (refresh token revocation)</li>
- *   <li>System bootstrap (initial tenant and admin creation)</li>
+ *   <li>Tenant signup (company and admin creation)</li>
  * </ul>
  */
 public interface AuthService {
@@ -39,11 +39,10 @@ public interface AuthService {
     void logout(LogoutRequest request);
 
     /**
-     * Bootstraps the system with initial tenant and admin user.
-     * Only valid when no tenants exist yet.
+     * Registers a new tenant with an initial admin user.
      *
-     * @param request the bootstrap request
-     * @return bootstrap response with created entities and tokens
+     * @param request the signup request
+     * @return signup response with created entities and tokens
      */
-    BootstrapResponse bootstrap(BootstrapRequest request);
+    SignupResponse signup(SignupRequest request);
 }

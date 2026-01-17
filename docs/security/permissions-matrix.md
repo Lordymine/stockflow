@@ -7,7 +7,7 @@
 
 ## Regras globais
 - `tenantId` vem do JWT e sempre filtra dados.
-- Endpoints exigem Authorization: Bearer, exceto login/refresh e bootstrap de tenant.
+- Endpoints exigem Authorization: Bearer, exceto login/refresh/signup.
 - Escopo de filial e aplicado quando houver `branchId` na rota ou no body.
 - Todos os usuarios (incluindo ADMIN) precisam de filial atribuida para operar em endpoints por filial.
 - Se nao houver acesso a filial, retornar `FORBIDDEN_BRANCH_ACCESS`.
@@ -25,11 +25,11 @@
 | POST /api/v1/auth/login | Publico | Credenciais validas |
 | POST /api/v1/auth/refresh | Publico | Refresh token valido |
 | POST /api/v1/auth/logout | Publico | Revoga refresh token |
+| POST /api/v1/auth/signup | Publico | Cadastro de empresa e admin |
 
 ### Tenants
 | Endpoint | Roles | Observacoes |
 |---|---|---|
-| POST /api/v1/tenants | Publico | Apenas quando nao existir tenant (bootstrap com admin e filial) |
 | GET /api/v1/tenants/me | ADMIN, MANAGER, STAFF | Tenant atual |
 
 ### Users

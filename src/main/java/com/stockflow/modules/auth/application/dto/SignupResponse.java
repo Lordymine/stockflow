@@ -5,12 +5,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * Response DTO for successful bootstrap.
+ * Response DTO for successful signup.
  *
  * <p>Contains created tenant, user, and authentication tokens.</p>
  */
-@Schema(description = "Bootstrap response with tenant, user, and tokens")
-public record BootstrapResponse(
+@Schema(description = "Signup response with tenant, user, and tokens")
+public record SignupResponse(
 
     @Schema(description = "Created tenant information")
     TenantInfo tenant,

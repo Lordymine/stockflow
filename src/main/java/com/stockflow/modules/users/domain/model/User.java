@@ -19,7 +19,7 @@ import java.util.Set;
  * <p>Invariants:</p>
  * <ul>
  *   <li>Name must be between 2 and 255 characters</li>
- *   <li>Email must be valid and unique within the tenant</li>
+ *   <li>Email must be valid and unique across tenants for login</li>
  *   <li>Password hash must be set and use BCrypt format</li>
  * </ul>
  */
@@ -37,7 +37,7 @@ public class User extends BaseEntity {
 
     /**
      * Email address of the user.
-     * Must be unique within the tenant (scoped by tenant_id).
+     * Must be unique across active users.
      */
     @Column(name = "email", nullable = false, length = 255)
     private String email;

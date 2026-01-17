@@ -5,13 +5,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * Request DTO for bootstrap (initial tenant setup).
- *
- * <p>Used to create the first tenant with admin user.
- * This endpoint is only valid when no tenants exist yet.</p>
+ * Request DTO for tenant signup (company + admin creation).
  */
-@Schema(description = "Bootstrap request for initial tenant setup")
-public record BootstrapRequest(
+@Schema(description = "Signup request for tenant and admin creation")
+public record SignupRequest(
 
     @Schema(description = "Tenant/company name", example = "Acme Corporation", required = true)
     @NotBlank(message = "Tenant name is required")

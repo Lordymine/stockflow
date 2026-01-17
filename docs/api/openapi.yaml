@@ -101,34 +101,28 @@ paths:
         '401':
           $ref: '#/components/responses/ErrorResponse'
 
-  /api/v1/tenants:
+  /api/v1/auth/signup:
     post:
-      tags: [Tenants]
-      summary: Create initial tenant
-      description: Public only when no tenant exists (bootstrap).
+      tags: [Auth]
+      summary: Signup
+      description: Public tenant and admin registration.
       security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TenantBootstrapRequest'
+              $ref: '#/components/schemas/AuthSignupRequest'
       responses:
         '201':
           description: Created
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  data:
-                    $ref: '#/components/schemas/TenantBootstrapData'
-                  meta:
-                    type: object
+                $ref: '#/components/schemas/AuthSignupResponse'
         '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '409':
           $ref: '#/components/responses/ErrorResponse'
   /api/v1/tenants/me:
     get:
@@ -1012,33 +1006,66 @@ components:
         expiresInSeconds:
           type: integer
 
-    TenantCreateRequest:
+    AuthSignupRequest:
       type: object
-      required: [name, slug]
+      required: [tenantName, tenantSlug, adminName, adminEmail, adminPassword]
       properties:
+        tenantName:
+          type: string
+        tenantSlug:
+          type: string
+        adminName:
+          type: string
+        adminEmail:
+          type: string
+          format: email
+        adminPassword:
+          type: string
+    AuthSignupResponse:
+      type: object
+      properties:
+        tenant:
+          $ref: '#/components/schemas/AuthSignupTenant'
+        user:
+          $ref: '#/components/schemas/AuthSignupUser'
+        tokens:
+          $ref: '#/components/schemas/AuthTokenInfo'
+    AuthSignupTenant:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
         name:
           type: string
         slug:
           type: string
-    TenantBootstrapRequest:
-      type: object
-      required: [tenant, admin, branch]
-      properties:
-        tenant:
-          $ref: '#/components/schemas/TenantCreateRequest'
-        admin:
-          $ref: '#/components/schemas/UserCreateRequest'
-        branch:
-          $ref: '#/components/schemas/BranchCreateRequest'
-    TenantBootstrapData:
+    AuthSignupUser:
       type: object
       properties:
-        tenant:
-          $ref: '#/components/schemas/Tenant'
-        adminUser:
-          $ref: '#/components/schemas/User'
-        branch:
-          $ref: '#/components/schemas/Branch'
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoleName'
+    AuthTokenInfo:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        tokenType:
+          type: string
+        expiresIn:
+          type: integer
     Tenant:
       type: object
       properties:

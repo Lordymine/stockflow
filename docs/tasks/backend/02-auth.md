@@ -5,10 +5,10 @@ DoD:
 - Tabelas, indices e constraints do PRD.
 - Seed de roles.
 
-## AUTH-02 Bootstrap tenant/admin
+## AUTH-02 Signup tenant/admin
 DoD:
-- Endpoint ou script para criar tenant + admin inicial.
-- Email unico por tenant.
+- Endpoint publico para criar tenant + admin inicial.
+- Email unico entre tenants (login por email).
 
 ## AUTH-03 JWT + refresh token
 DoD:
