@@ -1,5 +1,7 @@
 # Backend - Fase 1 Autenticacao e autorizacao
 
+## Status: CONCLUIDO
+
 ## AUTH-01 Migrations base (tenants/users/roles/user_roles/refresh_tokens)
 DoD:
 - Tabelas, indices e constraints do PRD.

@@ -25,7 +25,9 @@
       "Bash(mvn clean compile:*)",
       "Bash(git add:*)",
       "Bash(mvn test:*)",
-      "Bash(xargs cat:*)"
+      "Bash(xargs cat:*)",
+      "Skill(backend-development:feature-development)",
+      "Skill(backend-development:feature-development:*)"
     ]
   }
 }
