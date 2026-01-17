@@ -13,6 +13,6 @@ DoD:
 DoD:
 - ✅ `GET /products?search=&page=&size=` com ordenacao.
 
-## CAT-04 Ativar/desativar produto
+## CAT-04 Ativar/desativar produto ✅
 DoD:
-- `PATCH /products/{id}/active`.
+- ✅ `PATCH /products/{id}/active`.
