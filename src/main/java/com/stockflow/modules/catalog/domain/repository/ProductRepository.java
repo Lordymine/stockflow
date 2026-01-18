@@ -13,8 +13,11 @@ import java.util.Optional;
 /**
  * Repository interface for Product entity.
  *
- * <p>Provides data access operations for products with tenant isolation.
- * All queries ensure proper tenant scoping to maintain multi-tenancy data isolation.</p>
+ * <p>
+ * Provides data access operations for products with tenant isolation.
+ * All queries ensure proper tenant scoping to maintain multi-tenancy data
+ * isolation.
+ * </p>
  */
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
@@ -79,8 +82,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      */
     @Query("SELECT p FROM Product p WHERE p.categoryId = :categoryId AND p.tenantId = :tenantId AND p.isActive = true")
     Page<Product> findByCategoryIdAndTenantId(@Param("categoryId") Long categoryId,
-                                               @Param("tenantId") Long tenantId,
-                                               Pageable pageable);
+            @Param("tenantId") Long tenantId,
+            Pageable pageable);
 
     /**
      * Counts active products in a tenant.
@@ -100,12 +103,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      */
     @Query("SELECT COUNT(p) FROM Product p WHERE p.categoryId = :categoryId AND p.tenantId = :tenantId AND p.isActive = true")
     long countActiveByCategoryIdAndTenantId(@Param("categoryId") Long categoryId,
-                                             @Param("tenantId") Long tenantId);
+            @Param("tenantId") Long tenantId);
 
     /**
      * Searches products with multiple filters.
      *
-     * @param search     optional search term (searches in name, sku, description, barcode)
+     * @param search     optional search term (searches in name, sku, description,
+     *                   barcode)
      * @param categoryId optional category filter
      * @param minPrice   optional minimum sale price filter
      * @param maxPrice   optional maximum sale price filter
@@ -115,14 +119,15 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      * @return page of matching products
      */
     @Query("SELECT p FROM Product p WHERE p.tenantId = :tenantId AND " +
-           "(:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "LOWER(p.description) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "p.barcode LIKE CONCAT('%', :search, '%')) AND " +
-           "(:categoryId IS NULL OR p.categoryId = :categoryId) AND " +
-           "(:minPrice IS NULL OR p.salePrice >= :minPrice) AND " +
-           "(:maxPrice IS NULL OR p.salePrice <= :maxPrice) AND " +
-           "(:isActive IS NULL OR p.isActive = :isActive)")
+            "(:search IS NULL OR " +
+            "LOWER(p.name) LIKE LOWER(CONCAT('%', COALESCE(:search, ''), '%')) OR " +
+            "LOWER(p.sku) LIKE LOWER(CONCAT('%', COALESCE(:search, ''), '%')) OR " +
+            "LOWER(COALESCE(p.description, '')) LIKE LOWER(CONCAT('%', COALESCE(:search, ''), '%')) OR " +
+            "COALESCE(p.barcode, '') LIKE CONCAT('%', COALESCE(:search, ''), '%')) AND " +
+            "(:categoryId IS NULL OR p.categoryId = :categoryId) AND " +
+            "(:minPrice IS NULL OR p.salePrice >= :minPrice) AND " +
+            "(:maxPrice IS NULL OR p.salePrice <= :maxPrice) AND " +
+            "(:isActive IS NULL OR p.isActive = :isActive)")
     Page<Product> searchProducts(
             @Param("search") String search,
             @Param("categoryId") Long categoryId,
@@ -130,6 +135,5 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("maxPrice") java.math.BigDecimal maxPrice,
             @Param("isActive") Boolean isActive,
             @Param("tenantId") Long tenantId,
-            Pageable pageable
-    );
+            Pageable pageable);
 }

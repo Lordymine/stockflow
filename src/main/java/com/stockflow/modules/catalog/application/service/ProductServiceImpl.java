@@ -25,8 +25,10 @@ import java.util.Set;
 /**
  * Implementation of product service.
  *
- * <p>Handles business logic for product management including creation, updates,
- * deletion, and querying. All operations are scoped to the current tenant.</p>
+ * <p>
+ * Handles business logic for product management including creation, updates,
+ * deletion, and querying. All operations are scoped to the current tenant.
+ * </p>
  */
 @Service
 public class ProductServiceImpl implements ProductService {
@@ -41,8 +43,8 @@ public class ProductServiceImpl implements ProductService {
     private final ProductMapper productMapper;
 
     public ProductServiceImpl(ProductRepository productRepository,
-                              CategoryRepository categoryRepository,
-                              ProductMapper productMapper) {
+            CategoryRepository categoryRepository,
+            ProductMapper productMapper) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.productMapper = productMapper;
@@ -58,7 +60,7 @@ public class ProductServiceImpl implements ProductService {
         // Check if product with same SKU already exists in tenant
         if (productRepository.existsBySkuAndTenantId(request.sku(), tenantId)) {
             throw new ConflictException("PRODUCT_SKU_ALREADY_EXISTS",
-                "A product with this SKU already exists in your tenant");
+                    "A product with this SKU already exists in your tenant");
         }
 
         // Validate category if provided
@@ -85,17 +87,17 @@ public class ProductServiceImpl implements ProductService {
 
         // Find product ensuring it belongs to tenant
         Product product = productRepository.findByIdAndTenantId(id, tenantId)
-            .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND",
-                "Product not found with ID: " + id));
+                .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND",
+                        "Product not found with ID: " + id));
 
         // Check if another product with same SKU exists
         productRepository.findBySkuAndTenantId(request.sku(), tenantId)
-            .ifPresent(existing -> {
-                if (!existing.getId().equals(id)) {
-                    throw new ConflictException("PRODUCT_SKU_ALREADY_EXISTS",
-                        "Another product with this SKU already exists");
-                }
-            });
+                .ifPresent(existing -> {
+                    if (!existing.getId().equals(id)) {
+                        throw new ConflictException("PRODUCT_SKU_ALREADY_EXISTS",
+                                "Another product with this SKU already exists");
+                    }
+                });
 
         // Validate category if provided
         validateCategoryIfExists(request.categoryId(), tenantId);
@@ -127,8 +129,8 @@ public class ProductServiceImpl implements ProductService {
 
         // Find product ensuring it belongs to tenant
         Product product = productRepository.findByIdAndTenantId(id, tenantId)
-            .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND",
-                "Product not found with ID: " + id));
+                .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND",
+                        "Product not found with ID: " + id));
 
         // Soft delete by deactivating (handled by @SQLDelete)
         productRepository.delete(product);
@@ -156,8 +158,8 @@ public class ProductServiceImpl implements ProductService {
 
         Long tenantId = TenantContext.getTenantId();
         Product product = productRepository.findByIdAndTenantId(id, tenantId)
-            .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND",
-                "Product not found with ID: " + id));
+                .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND",
+                        "Product not found with ID: " + id));
 
         return productMapper.toResponse(product);
     }
@@ -172,8 +174,8 @@ public class ProductServiceImpl implements ProductService {
         // Validate category exists and belongs to tenant
         if (categoryId != null) {
             categoryRepository.findByIdAndTenantId(categoryId, tenantId)
-                .orElseThrow(() -> new NotFoundException("CATEGORY_NOT_FOUND",
-                    "Category not found with ID: " + categoryId));
+                    .orElseThrow(() -> new NotFoundException("CATEGORY_NOT_FOUND",
+                            "Category not found with ID: " + categoryId));
         }
 
         Page<Product> products = productRepository.findByCategoryIdAndTenantId(categoryId, tenantId, pageable);
@@ -193,8 +195,8 @@ public class ProductServiceImpl implements ProductService {
     private void validateCategoryIfExists(Long categoryId, Long tenantId) {
         if (categoryId != null) {
             categoryRepository.findByIdAndTenantId(categoryId, tenantId)
-                .orElseThrow(() -> new NotFoundException("CATEGORY_NOT_FOUND",
-                    "Category not found with ID: " + categoryId));
+                    .orElseThrow(() -> new NotFoundException("CATEGORY_NOT_FOUND",
+                            "Category not found with ID: " + categoryId));
         }
     }
 
@@ -209,7 +211,7 @@ public class ProductServiceImpl implements ProductService {
         if (costPrice != null && salePrice != null) {
             if (costPrice.compareTo(salePrice) > 0) {
                 throw new ValidationException("INVALID_PRICE_RELATIONSHIP",
-                    "Cost price cannot be greater than sale price");
+                        "Cost price cannot be greater than sale price");
             }
         }
     }
@@ -217,21 +219,25 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public Page<ProductResponse> search(String search, Long categoryId, BigDecimal minPrice,
-                                        BigDecimal maxPrice, Boolean isActive, String sortBy,
-                                        String sortOrder, int page, int size) {
-        logger.debug("Searching products with filters - search: {}, categoryId: {}, minPrice: {}, maxPrice: {}, isActive: {}, sortBy: {}, sortOrder: {}, page: {}, size: {}",
+            BigDecimal maxPrice, Boolean isActive, String sortBy,
+            String sortOrder, int page, int size) {
+        logger.debug(
+                "Searching products with filters - search: {}, categoryId: {}, minPrice: {}, maxPrice: {}, isActive: {}, sortBy: {}, sortOrder: {}, page: {}, size: {}",
                 search, categoryId, minPrice, maxPrice, isActive, sortBy, sortOrder, page, size);
 
         Long tenantId = TenantContext.getTenantId();
 
+        // Normalize search parameter: empty or blank strings become null
+        String effectiveSearch = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
         // Default active filter to true when not provided
         Boolean effectiveIsActive = isActive != null ? isActive : Boolean.TRUE;
 
-        // Validate and default sortBy
-        String validSortBy = VALID_SORT_FIELDS.contains(sortBy) ? sortBy : "name";
+        // Validate and default sortBy (null-safe check for immutable Set)
+        String validSortBy = (sortBy != null && VALID_SORT_FIELDS.contains(sortBy)) ? sortBy : "name";
 
-        // Validate and default sortOrder
-        Sort.Direction direction = VALID_SORT_ORDERS.contains(sortOrder)
+        // Validate and default sortOrder (null-safe check for immutable Set)
+        Sort.Direction direction = (sortOrder != null && VALID_SORT_ORDERS.contains(sortOrder))
                 ? Sort.Direction.fromString(sortOrder)
                 : Sort.Direction.ASC;
 
@@ -244,7 +250,7 @@ public class ProductServiceImpl implements ProductService {
 
         // Execute search
         Page<Product> products = productRepository.searchProducts(
-                search, categoryId, minPrice, maxPrice, effectiveIsActive, tenantId, pageable);
+                effectiveSearch, categoryId, minPrice, maxPrice, effectiveIsActive, tenantId, pageable);
 
         logger.debug("Found {} products matching search criteria", products.getTotalElements());
 
@@ -258,15 +264,15 @@ public class ProductServiceImpl implements ProductService {
 
         if (isActive == null) {
             throw new ValidationException("VALIDATION_ERROR",
-                "Active status is required");
+                    "Active status is required");
         }
 
         Long tenantId = TenantContext.getTenantId();
 
         // Find product ensuring it belongs to tenant
         Product product = productRepository.findByIdAndTenantIdIncludingInactive(productId, tenantId)
-            .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND",
-                "Product not found with ID: " + productId));
+                .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND",
+                        "Product not found with ID: " + productId));
 
         product.setActive(isActive);
 
@@ -274,7 +280,7 @@ public class ProductServiceImpl implements ProductService {
         Product updatedProduct = productRepository.save(product);
 
         logger.info("Product active status updated successfully: {} (now active: {})",
-            updatedProduct.getId(), updatedProduct.isActive());
+                updatedProduct.getId(), updatedProduct.isActive());
 
         return productMapper.toResponse(updatedProduct);
     }

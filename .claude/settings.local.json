@@ -27,7 +27,11 @@
       "Bash(mvn test:*)",
       "Bash(xargs cat:*)",
       "Skill(backend-development:feature-development)",
-      "Skill(backend-development:feature-development:*)"
+      "Skill(backend-development:feature-development:*)",
+      "mcp__ai-context__initializeContext",
+      "mcp__ai-context__fillScaffolding",
+      "mcp__ai-context__listFilesToFill",
+      "mcp__ai-context__fillSingleFile"
     ]
   }
 }
