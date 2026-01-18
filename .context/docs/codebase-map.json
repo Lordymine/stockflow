@@ -1,0 +1,1054 @@
+{
+  "version": "1.0.0",
+  "generated": "2026-01-18T18:29:04.055Z",
+  "stack": {
+    "primaryLanguage": "typescript",
+    "languages": [
+      "java",
+      "typescript",
+      "javascript",
+      "c"
+    ],
+    "frameworks": [],
+    "buildTools": [
+      "maven",
+      "docker-compose"
+    ],
+    "testFrameworks": [],
+    "packageManager": null,
+    "isMonorepo": false,
+    "hasDocker": true,
+    "hasCI": true
+  },
+  "structure": {
+    "totalFiles": 23286,
+    "topDirectories": [
+      {
+        "name": "AGENTS.md",
+        "fileCount": 1
+      },
+      {
+        "name": "CLAUDE.md",
+        "fileCount": 1
+      },
+      {
+        "name": "docker",
+        "fileCount": 0
+      },
+      {
+        "name": "docker-compose.yml",
+        "fileCount": 1
+      },
+      {
+        "name": "docs",
+        "fileCount": 32
+      },
+      {
+        "name": "frontend",
+        "fileCount": 22916
+      },
+      {
+        "name": "mcp.json",
+        "fileCount": 1
+      },
+      {
+        "name": "mvnw.cmd",
+        "fileCount": 1
+      },
+      {
+        "name": "nul",
+        "fileCount": 1
+      },
+      {
+        "name": "pom.xml",
+        "fileCount": 1
+      },
+      {
+        "name": "quick-start.bat",
+        "fileCount": 1
+      },
+      {
+        "name": "quick-start.sh",
+        "fileCount": 1
+      },
+      {
+        "name": "README.md",
+        "fileCount": 1
+      },
+      {
+        "name": "run-dashboard-tests.bat",
+        "fileCount": 1
+      },
+      {
+        "name": "SETUP.md",
+        "fileCount": 1
+      },
+      {
+        "name": "src",
+        "fileCount": 156
+      },
+      {
+        "name": "target",
+        "fileCount": 169
+      },
+      {
+        "name": "VERIFY-FOUNDATION.md",
+        "fileCount": 1
+      }
+    ],
+    "languageDistribution": [
+      {
+        "extension": ".js",
+        "count": 8719
+      },
+      {
+        "extension": ".ts",
+        "count": 5708
+      },
+      {
+        "extension": ".map",
+        "count": 5012
+      },
+      {
+        "extension": ".json",
+        "count": 896
+      },
+      {
+        "extension": ".md",
+        "count": 737
+      },
+      {
+        "extension": ".cjs",
+        "count": 357
+      },
+      {
+        "extension": ".mjs",
+        "count": 287
+      },
+      {
+        "extension": ".scss",
+        "count": 188
+      },
+      {
+        "extension": ".cts",
+        "count": 164
+      },
+      {
+        "extension": ".class",
+        "count": 144
+      }
+    ]
+  },
+  "architecture": {
+    "layers": [
+      {
+        "name": "Controllers",
+        "description": "Request handling and routing",
+        "directories": [
+          "frontend\\src\\app",
+          "frontend\\src\\core\\models"
+        ],
+        "symbolCount": 39,
+        "dependsOn": []
+      },
+      {
+        "name": "Components",
+        "description": "UI components and views",
+        "directories": [
+          "frontend\\src\\features\\dashboard",
+          "frontend\\src\\features\\inventory\\transfers",
+          "frontend\\src\\features\\inventory\\stock",
+          "frontend\\src\\features\\inventory\\movements",
+          "frontend\\src\\features\\catalog\\products",
+          "frontend\\src\\features\\catalog\\categories",
+          "frontend\\src\\features\\auth\\signup",
+          "frontend\\src\\features\\auth\\login",
+          "frontend\\src\\features\\auth\\auth-layout"
+        ],
+        "symbolCount": 9,
+        "dependsOn": [
+          "Utils",
+          "Services",
+          "Controllers"
+        ]
+      },
+      {
+        "name": "Services",
+        "description": "Business logic and orchestration",
+        "directories": [
+          "frontend\\src\\core\\services"
+        ],
+        "symbolCount": 4,
+        "dependsOn": [
+          "Controllers"
+        ]
+      },
+      {
+        "name": "Utils",
+        "description": "Shared utilities and helpers",
+        "directories": [
+          "frontend\\src\\shared\\layouts\\main-layout",
+          "frontend\\src\\shared\\components\\loading",
+          "frontend\\src\\shared\\components\\error-state",
+          "frontend\\src\\shared\\components\\empty-state"
+        ],
+        "symbolCount": 4,
+        "dependsOn": [
+          "Services"
+        ]
+      }
+    ],
+    "patterns": [
+      {
+        "name": "Service Layer",
+        "confidence": 0.85,
+        "description": "Encapsulates business logic in service classes",
+        "occurrences": 3
+      }
+    ],
+    "entryPoints": [
+      "frontend\\src\\main.ts",
+      "frontend\\src\\app\\app.ts"
+    ]
+  },
+  "symbols": {
+    "classes": [
+      {
+        "name": "AppComponent",
+        "kind": "class",
+        "file": "frontend\\src\\app\\app.ts",
+        "line": 11,
+        "exported": true
+      },
+      {
+        "name": "AuthLayoutComponent",
+        "kind": "class",
+        "file": "frontend\\src\\features\\auth\\auth-layout\\auth-layout.component.ts",
+        "line": 154,
+        "exported": true
+      },
+      {
+        "name": "AuthService",
+        "kind": "class",
+        "file": "frontend\\src\\core\\services\\auth.service.ts",
+        "line": 29,
+        "exported": true
+      },
+      {
+        "name": "CategoriesComponent",
+        "kind": "class",
+        "file": "frontend\\src\\features\\catalog\\categories\\categories.component.ts",
+        "line": 34,
+        "exported": true
+      },
+      {
+        "name": "DashboardComponent",
+        "kind": "class",
+        "file": "frontend\\src\\features\\dashboard\\dashboard.component.ts",
+        "line": 242,
+        "exported": true
+      },
+      {
+        "name": "EmptyStateComponent",
+        "kind": "class",
+        "file": "frontend\\src\\shared\\components\\empty-state\\empty-state.component.ts",
+        "line": 58,
+        "exported": true
+      },
+      {
+        "name": "ErrorStateComponent",
+        "kind": "class",
+        "file": "frontend\\src\\shared\\components\\error-state\\error-state.component.ts",
+        "line": 53,
+        "exported": true
+      },
+      {
+        "name": "HttpService",
+        "kind": "class",
+        "file": "frontend\\src\\core\\services\\http.service.ts",
+        "line": 17,
+        "exported": true
+      },
+      {
+        "name": "LoadingComponent",
+        "kind": "class",
+        "file": "frontend\\src\\shared\\components\\loading\\loading.component.ts",
+        "line": 20,
+        "exported": true
+      },
+      {
+        "name": "LoginComponent",
+        "kind": "class",
+        "file": "frontend\\src\\features\\auth\\login\\login.component.ts",
+        "line": 138,
+        "exported": true
+      },
+      {
+        "name": "MainLayoutComponent",
+        "kind": "class",
+        "file": "frontend\\src\\shared\\layouts\\main-layout\\main-layout.component.ts",
+        "line": 386,
+        "exported": true
+      },
+      {
+        "name": "MovementsComponent",
+        "kind": "class",
+        "file": "frontend\\src\\features\\inventory\\movements\\movements.component.ts",
+        "line": 33,
+        "exported": true
+      },
+      {
+        "name": "ProductsComponent",
+        "kind": "class",
+        "file": "frontend\\src\\features\\catalog\\products\\products.component.ts",
+        "line": 34,
+        "exported": true
+      },
+      {
+        "name": "SignupComponent",
+        "kind": "class",
+        "file": "frontend\\src\\features\\auth\\signup\\signup.component.ts",
+        "line": 184,
+        "exported": true
+      },
+      {
+        "name": "StockComponent",
+        "kind": "class",
+        "file": "frontend\\src\\features\\inventory\\stock\\stock.component.ts",
+        "line": 27,
+        "exported": true
+      },
+      {
+        "name": "StorageService",
+        "kind": "class",
+        "file": "frontend\\src\\core\\services\\storage.service.ts",
+        "line": 6,
+        "exported": true
+      },
+      {
+        "name": "TransfersComponent",
+        "kind": "class",
+        "file": "frontend\\src\\features\\inventory\\transfers\\transfers.component.ts",
+        "line": 33,
+        "exported": true
+      }
+    ],
+    "interfaces": [
+      {
+        "name": "ActiveRequest",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 159,
+        "exported": true
+      },
+      {
+        "name": "ApiError",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 40,
+        "exported": true
+      },
+      {
+        "name": "ApiResponse",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 34,
+        "exported": true
+      },
+      {
+        "name": "AuthLoginData",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 90,
+        "exported": true
+      },
+      {
+        "name": "AuthLoginRequest",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 62,
+        "exported": true
+      },
+      {
+        "name": "AuthLogoutRequest",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 71,
+        "exported": true
+      },
+      {
+        "name": "AuthRefreshData",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 105,
+        "exported": true
+      },
+      {
+        "name": "AuthRefreshRequest",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 67,
+        "exported": true
+      },
+      {
+        "name": "AuthSignupRequest",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 75,
+        "exported": true
+      },
+      {
+        "name": "AuthSignupResponse",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 99,
+        "exported": true
+      },
+      {
+        "name": "AuthSignupTenant",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 111,
+        "exported": true
+      },
+      {
+        "name": "AuthSignupUser",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 117,
+        "exported": true
+      },
+      {
+        "name": "AuthTokenInfo",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 83,
+        "exported": true
+      },
+      {
+        "name": "Branch",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 169,
+        "exported": true
+      },
+      {
+        "name": "BranchCreateRequest",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 187,
+        "exported": true
+      },
+      {
+        "name": "BranchesUpdateRequest",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 155,
+        "exported": true
+      },
+      {
+        "name": "BranchSummary",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 181,
+        "exported": true
+      },
+      {
+        "name": "Category",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 196,
+        "exported": true
+      },
+      {
+        "name": "CategoryCreateRequest",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 203,
+        "exported": true
+      },
+      {
+        "name": "ChangePasswordRequest",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 163,
+        "exported": true
+      },
+      {
+        "name": "DashboardOverview",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 291,
+        "exported": true
+      },
+      {
+        "name": "MovementCreateRequest",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 263,
+        "exported": true
+      },
+      {
+        "name": "PageMeta",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 49,
+        "exported": true
+      },
+      {
+        "name": "PaginatedResponse",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 56,
+        "exported": true
+      },
+      {
+        "name": "Product",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 207,
+        "exported": true
+      },
+      {
+        "name": "ProductCreateRequest",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 224,
+        "exported": true
+      },
+      {
+        "name": "RolesUpdateRequest",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 151,
+        "exported": true
+      },
+      {
+        "name": "StockItem",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 238,
+        "exported": true
+      },
+      {
+        "name": "StockMovement",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 250,
+        "exported": true
+      },
+      {
+        "name": "Tenant",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 125,
+        "exported": true
+      },
+      {
+        "name": "TopProduct",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 285,
+        "exported": true
+      },
+      {
+        "name": "TransferRequest",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 271,
+        "exported": true
+      },
+      {
+        "name": "TransferResult",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 279,
+        "exported": true
+      },
+      {
+        "name": "User",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 134,
+        "exported": true
+      },
+      {
+        "name": "UserCreateRequest",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 145,
+        "exported": true
+      },
+      {
+        "name": "AuthState",
+        "kind": "interface",
+        "file": "frontend\\src\\core\\services\\auth.service.ts",
+        "line": 18,
+        "exported": false
+      }
+    ],
+    "functions": [
+      {
+        "name": "addToken",
+        "kind": "function",
+        "file": "frontend\\src\\core\\interceptors\\auth.interceptor.ts",
+        "line": 53,
+        "exported": false
+      },
+      {
+        "name": "handle401Error",
+        "kind": "function",
+        "file": "frontend\\src\\core\\interceptors\\auth.interceptor.ts",
+        "line": 61,
+        "exported": false
+      },
+      {
+        "name": "isAuthEndpoint",
+        "kind": "function",
+        "file": "frontend\\src\\core\\interceptors\\auth.interceptor.ts",
+        "line": 44,
+        "exported": false
+      }
+    ],
+    "types": [],
+    "enums": [
+      {
+        "name": "MovementReason",
+        "kind": "enum",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 22,
+        "exported": true
+      },
+      {
+        "name": "MovementType",
+        "kind": "enum",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 15,
+        "exported": true
+      },
+      {
+        "name": "RoleName",
+        "kind": "enum",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 2,
+        "exported": true
+      },
+      {
+        "name": "UnitOfMeasure",
+        "kind": "enum",
+        "file": "frontend\\src\\core\\models\\api.models.ts",
+        "line": 8,
+        "exported": true
+      }
+    ]
+  },
+  "publicAPI": [
+    {
+      "name": "ActiveRequest",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 159,
+      "exported": true
+    },
+    {
+      "name": "ApiError",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 40,
+      "exported": true
+    },
+    {
+      "name": "ApiResponse",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 34,
+      "exported": true
+    },
+    {
+      "name": "AppComponent",
+      "kind": "class",
+      "file": "frontend\\src\\app\\app.ts",
+      "line": 11,
+      "exported": true
+    },
+    {
+      "name": "AuthLayoutComponent",
+      "kind": "class",
+      "file": "frontend\\src\\features\\auth\\auth-layout\\auth-layout.component.ts",
+      "line": 154,
+      "exported": true
+    },
+    {
+      "name": "AuthLoginData",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 90,
+      "exported": true
+    },
+    {
+      "name": "AuthLoginRequest",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 62,
+      "exported": true
+    },
+    {
+      "name": "AuthLogoutRequest",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 71,
+      "exported": true
+    },
+    {
+      "name": "AuthRefreshData",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 105,
+      "exported": true
+    },
+    {
+      "name": "AuthRefreshRequest",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 67,
+      "exported": true
+    },
+    {
+      "name": "AuthService",
+      "kind": "class",
+      "file": "frontend\\src\\core\\services\\auth.service.ts",
+      "line": 29,
+      "exported": true
+    },
+    {
+      "name": "AuthSignupRequest",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 75,
+      "exported": true
+    },
+    {
+      "name": "AuthSignupResponse",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 99,
+      "exported": true
+    },
+    {
+      "name": "AuthSignupTenant",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 111,
+      "exported": true
+    },
+    {
+      "name": "AuthSignupUser",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 117,
+      "exported": true
+    },
+    {
+      "name": "AuthTokenInfo",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 83,
+      "exported": true
+    },
+    {
+      "name": "Branch",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 169,
+      "exported": true
+    },
+    {
+      "name": "BranchCreateRequest",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 187,
+      "exported": true
+    },
+    {
+      "name": "BranchesUpdateRequest",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 155,
+      "exported": true
+    },
+    {
+      "name": "BranchSummary",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 181,
+      "exported": true
+    },
+    {
+      "name": "CategoriesComponent",
+      "kind": "class",
+      "file": "frontend\\src\\features\\catalog\\categories\\categories.component.ts",
+      "line": 34,
+      "exported": true
+    },
+    {
+      "name": "Category",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 196,
+      "exported": true
+    },
+    {
+      "name": "CategoryCreateRequest",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 203,
+      "exported": true
+    },
+    {
+      "name": "ChangePasswordRequest",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 163,
+      "exported": true
+    },
+    {
+      "name": "DashboardComponent",
+      "kind": "class",
+      "file": "frontend\\src\\features\\dashboard\\dashboard.component.ts",
+      "line": 242,
+      "exported": true
+    },
+    {
+      "name": "DashboardOverview",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 291,
+      "exported": true
+    },
+    {
+      "name": "EmptyStateComponent",
+      "kind": "class",
+      "file": "frontend\\src\\shared\\components\\empty-state\\empty-state.component.ts",
+      "line": 58,
+      "exported": true
+    },
+    {
+      "name": "ErrorStateComponent",
+      "kind": "class",
+      "file": "frontend\\src\\shared\\components\\error-state\\error-state.component.ts",
+      "line": 53,
+      "exported": true
+    },
+    {
+      "name": "HttpService",
+      "kind": "class",
+      "file": "frontend\\src\\core\\services\\http.service.ts",
+      "line": 17,
+      "exported": true
+    },
+    {
+      "name": "LoadingComponent",
+      "kind": "class",
+      "file": "frontend\\src\\shared\\components\\loading\\loading.component.ts",
+      "line": 20,
+      "exported": true
+    },
+    {
+      "name": "LoginComponent",
+      "kind": "class",
+      "file": "frontend\\src\\features\\auth\\login\\login.component.ts",
+      "line": 138,
+      "exported": true
+    },
+    {
+      "name": "MainLayoutComponent",
+      "kind": "class",
+      "file": "frontend\\src\\shared\\layouts\\main-layout\\main-layout.component.ts",
+      "line": 386,
+      "exported": true
+    },
+    {
+      "name": "MovementCreateRequest",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 263,
+      "exported": true
+    },
+    {
+      "name": "MovementsComponent",
+      "kind": "class",
+      "file": "frontend\\src\\features\\inventory\\movements\\movements.component.ts",
+      "line": 33,
+      "exported": true
+    },
+    {
+      "name": "PageMeta",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 49,
+      "exported": true
+    },
+    {
+      "name": "PaginatedResponse",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 56,
+      "exported": true
+    },
+    {
+      "name": "Product",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 207,
+      "exported": true
+    },
+    {
+      "name": "ProductCreateRequest",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 224,
+      "exported": true
+    },
+    {
+      "name": "ProductsComponent",
+      "kind": "class",
+      "file": "frontend\\src\\features\\catalog\\products\\products.component.ts",
+      "line": 34,
+      "exported": true
+    },
+    {
+      "name": "RolesUpdateRequest",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 151,
+      "exported": true
+    },
+    {
+      "name": "SignupComponent",
+      "kind": "class",
+      "file": "frontend\\src\\features\\auth\\signup\\signup.component.ts",
+      "line": 184,
+      "exported": true
+    },
+    {
+      "name": "StockComponent",
+      "kind": "class",
+      "file": "frontend\\src\\features\\inventory\\stock\\stock.component.ts",
+      "line": 27,
+      "exported": true
+    },
+    {
+      "name": "StockItem",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 238,
+      "exported": true
+    },
+    {
+      "name": "StockMovement",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 250,
+      "exported": true
+    },
+    {
+      "name": "StorageService",
+      "kind": "class",
+      "file": "frontend\\src\\core\\services\\storage.service.ts",
+      "line": 6,
+      "exported": true
+    },
+    {
+      "name": "Tenant",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 125,
+      "exported": true
+    },
+    {
+      "name": "TopProduct",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 285,
+      "exported": true
+    },
+    {
+      "name": "TransferRequest",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 271,
+      "exported": true
+    },
+    {
+      "name": "TransferResult",
+      "kind": "interface",
+      "file": "frontend\\src\\core\\models\\api.models.ts",
+      "line": 279,
+      "exported": true
+    },
+    {
+      "name": "TransfersComponent",
+      "kind": "class",
+      "file": "frontend\\src\\features\\inventory\\transfers\\transfers.component.ts",
+      "line": 33,
+      "exported": true
+    }
+  ],
+  "dependencies": {
+    "mostImported": [
+      {
+        "file": "C:\\Users\\kocar\\OneDrive\\Documentos\\Projects\\StockFlow\\frontend\\src\\shared\\components\\empty-state\\empty-state.component.ts",
+        "importedBy": 6
+      },
+      {
+        "file": "C:\\Users\\kocar\\OneDrive\\Documentos\\Projects\\StockFlow\\frontend\\src\\core\\services\\auth.service.ts",
+        "importedBy": 6
+      },
+      {
+        "file": "C:\\Users\\kocar\\OneDrive\\Documentos\\Projects\\StockFlow\\frontend\\src\\core\\models\\api.models.ts",
+        "importedBy": 4
+      },
+      {
+        "file": "C:\\Users\\kocar\\OneDrive\\Documentos\\Projects\\StockFlow\\frontend\\src\\core\\services\\storage.service.ts",
+        "importedBy": 3
+      },
+      {
+        "file": "C:\\Users\\kocar\\OneDrive\\Documentos\\Projects\\StockFlow\\frontend\\src\\app\\app.ts",
+        "importedBy": 2
+      },
+      {
+        "file": "C:\\Users\\kocar\\OneDrive\\Documentos\\Projects\\StockFlow\\frontend\\src\\features\\auth\\auth-layout\\auth-layout.component.ts",
+        "importedBy": 2
+      },
+      {
+        "file": "C:\\Users\\kocar\\OneDrive\\Documentos\\Projects\\StockFlow\\frontend\\src\\app\\app.config.ts",
+        "importedBy": 1
+      },
+      {
+        "file": "C:\\Users\\kocar\\OneDrive\\Documentos\\Projects\\StockFlow\\frontend\\src\\core\\guards\\auth.guard.ts",
+        "importedBy": 1
+      },
+      {
+        "file": "C:\\Users\\kocar\\OneDrive\\Documentos\\Projects\\StockFlow\\frontend\\src\\app\\app.routes.ts",
+        "importedBy": 1
+      },
+      {
+        "file": "C:\\Users\\kocar\\OneDrive\\Documentos\\Projects\\StockFlow\\frontend\\src\\core\\interceptors\\auth.interceptor.ts",
+        "importedBy": 1
+      },
+      {
+        "file": "C:\\Users\\kocar\\OneDrive\\Documentos\\Projects\\StockFlow\\frontend\\src\\environments\\environment.ts",
+        "importedBy": 1
+      },
+      {
+        "file": "C:\\Users\\kocar\\OneDrive\\Documentos\\Projects\\StockFlow\\frontend\\src\\core\\services\\http.service.ts",
+        "importedBy": 1
+      }
+    ]
+  },
+  "stats": {
+    "totalSymbols": 60,
+    "exportedSymbols": 56,
+    "analysisTimeMs": 741
+  }
+}
