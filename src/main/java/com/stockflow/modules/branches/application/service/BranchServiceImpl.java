@@ -45,7 +45,7 @@ public class BranchServiceImpl implements BranchService {
 
         if (normalizedCode != null && branchRepository.existsByCodeAndTenantId(normalizedCode, tenantId)) {
             throw new ConflictException("BRANCH_CODE_ALREADY_EXISTS",
-                "Branch code already exists in this tenant");
+                    "Branch code already exists in this tenant");
         }
 
         Branch branch = branchMapper.toEntity(request, tenantId);
@@ -62,7 +62,14 @@ public class BranchServiceImpl implements BranchService {
         Long tenantId = TenantContext.requireTenantId();
         List<Long> branchIds = requireBranchAccess();
 
-        Page<Branch> branches = branchRepository.findAllByTenantIdAndIdIn(tenantId, branchIds, pageable);
+        Page<Branch> branches;
+        if (branchIds == null) {
+            // ADMIN - get all branches for tenant
+            branches = branchRepository.findAllByTenantId(tenantId, pageable);
+        } else {
+            // Non-admin - get only assigned branches
+            branches = branchRepository.findAllByTenantIdAndIdIn(tenantId, branchIds, pageable);
+        }
         return branches.map(branchMapper::toResponse);
     }
 
@@ -72,8 +79,8 @@ public class BranchServiceImpl implements BranchService {
         Long tenantId = TenantContext.requireTenantId();
 
         Branch branch = branchRepository.findByIdAndTenantIdIncludingInactive(branchId, tenantId)
-            .orElseThrow(() -> new NotFoundException("BRANCH_NOT_FOUND",
-                "Branch not found with ID: " + branchId));
+                .orElseThrow(() -> new NotFoundException("BRANCH_NOT_FOUND",
+                        "Branch not found with ID: " + branchId));
 
         branch.setActive(isActive);
         Branch saved = branchRepository.save(branch);
@@ -87,13 +94,18 @@ public class BranchServiceImpl implements BranchService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
             throw new ForbiddenException("FORBIDDEN_BRANCH_ACCESS",
-                "Branch access is required for this operation");
+                    "Branch access is required for this operation");
+        }
+
+        // ADMIN has access to all branches - return null to indicate no restriction
+        if (userDetails.getRoles().stream().anyMatch(r -> r.name().equals("ADMIN"))) {
+            return null;
         }
 
         List<Long> branchIds = userDetails.getBranchIds();
         if (branchIds == null || branchIds.isEmpty()) {
             throw new ForbiddenException("FORBIDDEN_BRANCH_ACCESS",
-                "Branch access is required for this operation");
+                    "Branch access is required for this operation");
         }
 
         return branchIds;

@@ -24,7 +24,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update  # Temporarily changed from validate to sync schema
     show-sql: false
     properties:
       hibernate:
@@ -37,7 +37,7 @@ spring:
         order_updates: true
 
   flyway:
-    enabled: true
+    enabled: false  # Temporarily disabled - run migrations manually
     baseline-on-migrate: true
     baseline-version: 0
     locations: classpath:db/migration

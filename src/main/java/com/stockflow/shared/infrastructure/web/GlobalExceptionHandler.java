@@ -19,16 +19,20 @@ import java.util.List;
 /**
  * Global exception handler for all REST controllers.
  *
- * <p>This class handles exceptions thrown by any controller and converts them
- * into standardized error responses following the API contract.</p>
+ * <p>
+ * This class handles exceptions thrown by any controller and converts them
+ * into standardized error responses following the API contract.
+ * </p>
  *
- * <p>Handles:</p>
+ * <p>
+ * Handles:
+ * </p>
  * <ul>
- *   <li>Domain exceptions (NotFoundException, ConflictException, etc.)</li>
- *   <li>Validation exceptions (MethodArgumentNotValidException)</li>
- *   <li>Security exceptions (AccessDeniedException)</li>
- *   <li>Concurrency exceptions (OptimisticLockingFailureException)</li>
- *   <li>Generic server errors</li>
+ * <li>Domain exceptions (NotFoundException, ConflictException, etc.)</li>
+ * <li>Validation exceptions (MethodArgumentNotValidException)</li>
+ * <li>Security exceptions (AccessDeniedException)</li>
+ * <li>Concurrency exceptions (OptimisticLockingFailureException)</li>
+ * <li>Generic server errors</li>
  * </ul>
  */
 @RestControllerAdvice
@@ -40,13 +44,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ResponseEntity<ApiErrorResponse> handleNotFoundException(
-        NotFoundException ex,
-        WebRequest request
-    ) {
+            NotFoundException ex,
+            WebRequest request) {
         ApiErrorResponse response = ApiErrorResponse.of(
-            ex.getErrorCode(),
-            ex.getMessage()
-        );
+                ex.getErrorCode(),
+                ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
@@ -56,13 +58,25 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConflictException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ResponseEntity<ApiErrorResponse> handleConflictException(
-        ConflictException ex,
-        WebRequest request
-    ) {
+            ConflictException ex,
+            WebRequest request) {
         ApiErrorResponse response = ApiErrorResponse.of(
-            ex.getErrorCode(),
-            ex.getMessage()
-        );
+                ex.getErrorCode(),
+                ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    /**
+     * Handles InsufficientStockException.
+     */
+    @ExceptionHandler(InsufficientStockException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ResponseEntity<ApiErrorResponse> handleInsufficientStockException(
+            InsufficientStockException ex,
+            WebRequest request) {
+        ApiErrorResponse response = ApiErrorResponse.of(
+                ex.getErrorCode(),
+                ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
@@ -72,13 +86,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ForbiddenException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ResponseEntity<ApiErrorResponse> handleForbiddenException(
-        ForbiddenException ex,
-        WebRequest request
-    ) {
+            ForbiddenException ex,
+            WebRequest request) {
         ApiErrorResponse response = ApiErrorResponse.of(
-            ex.getErrorCode(),
-            ex.getMessage()
-        );
+                ex.getErrorCode(),
+                ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
     }
 
@@ -88,13 +100,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadRequestException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<ApiErrorResponse> handleBadRequestException(
-        BadRequestException ex,
-        WebRequest request
-    ) {
+            BadRequestException ex,
+            WebRequest request) {
         ApiErrorResponse response = ApiErrorResponse.of(
-            ex.getErrorCode(),
-            ex.getMessage()
-        );
+                ex.getErrorCode(),
+                ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
@@ -104,13 +114,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UnauthorizedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ResponseEntity<ApiErrorResponse> handleUnauthorizedException(
-        UnauthorizedException ex,
-        WebRequest request
-    ) {
+            UnauthorizedException ex,
+            WebRequest request) {
         ApiErrorResponse response = ApiErrorResponse.of(
-            ex.getErrorCode(),
-            ex.getMessage()
-        );
+                ex.getErrorCode(),
+                ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
@@ -120,14 +128,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<ApiErrorResponse> handleValidationException(
-        ValidationException ex,
-        WebRequest request
-    ) {
+            ValidationException ex,
+            WebRequest request) {
         ApiErrorResponse response = ApiErrorResponse.of(
-            ex.getErrorCode(),
-            ex.getMessage(),
-            ex.hasErrors() ? ex.getValidationErrors() : null
-        );
+                ex.getErrorCode(),
+                ex.getMessage(),
+                ex.hasErrors() ? ex.getValidationErrors() : null);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
@@ -137,9 +143,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<ApiErrorResponse> handleValidationException(
-        MethodArgumentNotValidException ex,
-        WebRequest request
-    ) {
+            MethodArgumentNotValidException ex,
+            WebRequest request) {
         ApiErrorResponse response = ApiErrorResponse.fromFieldErrors(ex.getBindingResult().getFieldErrors());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
@@ -150,13 +155,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ResponseEntity<ApiErrorResponse> handleAccessDeniedException(
-        AccessDeniedException ex,
-        WebRequest request
-    ) {
+            AccessDeniedException ex,
+            WebRequest request) {
         ApiErrorResponse response = ApiErrorResponse.of(
-            "ACCESS_DENIED",
-            "You do not have permission to access this resource"
-        );
+                "ACCESS_DENIED",
+                "You do not have permission to access this resource");
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
     }
 
@@ -166,13 +169,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(OptimisticLockingFailureException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ResponseEntity<ApiErrorResponse> handleOptimisticLockingFailureException(
-        OptimisticLockingFailureException ex,
-        WebRequest request
-    ) {
+            OptimisticLockingFailureException ex,
+            WebRequest request) {
         ApiErrorResponse response = ApiErrorResponse.of(
-            "CONCURRENT_MODIFICATION",
-            "This resource was modified by another user. Please refresh and try again."
-        );
+                "CONCURRENT_MODIFICATION",
+                "This resource was modified by another user. Please refresh and try again.");
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
@@ -182,16 +183,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ResponseEntity<ApiErrorResponse> handleGenericException(
-        Exception ex,
-        WebRequest request
-    ) {
+            Exception ex,
+            WebRequest request) {
         // Log the full exception for debugging
         ex.printStackTrace();
 
         ApiErrorResponse response = ApiErrorResponse.of(
-            "INTERNAL_SERVER_ERROR",
-            "An unexpected error occurred. Please try again later."
-        );
+                "INTERNAL_SERVER_ERROR",
+                "An unexpected error occurred. Please try again later.");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }

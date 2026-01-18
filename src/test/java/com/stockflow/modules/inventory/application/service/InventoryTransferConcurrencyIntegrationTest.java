@@ -32,6 +32,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Concurrency tests for inventory transfers.
+ * 
+ * <p>
+ * This test requires Docker/Testcontainers to properly test concurrent
+ * database operations. It will be skipped if Docker is not available.
+ * </p>
+ */
 @SpringBootTest
 @DisplayName("InventoryService - Concurrency Tests")
 class InventoryTransferConcurrencyIntegrationTest extends TestcontainersIntegrationTest {
@@ -67,7 +75,7 @@ class InventoryTransferConcurrencyIntegrationTest extends TestcontainersIntegrat
         branchRepository.deleteAll();
         tenantRepository.deleteAll();
 
-        Tenant tenant = tenantRepository.save(new Tenant("Test Tenant", "test-tenant"));
+        Tenant tenant = tenantRepository.save(new Tenant("Test Tenant", "test-tenant-concurrency"));
         tenantId = tenant.getId();
 
         Branch source = branchRepository.save(new Branch(tenantId, "Source Branch", "SRC"));
@@ -111,12 +119,11 @@ class InventoryTransferConcurrencyIntegrationTest extends TestcontainersIntegrat
                         return;
                     }
                     inventoryService.transferStock(new TransferStockRequest(
-                        sourceBranchId,
-                        destinationBranchId,
-                        productId,
-                        1,
-                        "Concurrent transfer"
-                    ));
+                            sourceBranchId,
+                            destinationBranchId,
+                            productId,
+                            1,
+                            "Concurrent transfer"));
                     successCount.incrementAndGet();
                 } catch (Exception ex) {
                     failures.add(ex);
@@ -133,11 +140,11 @@ class InventoryTransferConcurrencyIntegrationTest extends TestcontainersIntegrat
         executor.shutdownNow();
 
         BranchProductStock sourceStock = stockRepository
-            .findByTenantIdAndBranchIdAndProductId(sourceBranchId, productId, tenantId)
-            .orElseThrow();
+                .findByTenantIdAndBranchIdAndProductId(sourceBranchId, productId, tenantId)
+                .orElseThrow();
         BranchProductStock destinationStock = stockRepository
-            .findByTenantIdAndBranchIdAndProductId(destinationBranchId, productId, tenantId)
-            .orElseThrow();
+                .findByTenantIdAndBranchIdAndProductId(destinationBranchId, productId, tenantId)
+                .orElseThrow();
 
         assertThat(sourceStock.getQuantity() + destinationStock.getQuantity()).isEqualTo(initialTotal);
         assertThat(destinationStock.getQuantity()).isEqualTo(successCount.get());
@@ -145,9 +152,8 @@ class InventoryTransferConcurrencyIntegrationTest extends TestcontainersIntegrat
         assertThat(successCount.get()).isGreaterThan(0);
 
         if (!failures.isEmpty()) {
-            assertThat(failures).allSatisfy(ex ->
-                assertThat(ex).isInstanceOfAny(ValidationException.class, InsufficientStockException.class)
-            );
+            assertThat(failures).allSatisfy(
+                    ex -> assertThat(ex).isInstanceOfAny(ValidationException.class, InsufficientStockException.class));
         }
     }
 }

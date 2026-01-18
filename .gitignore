@@ -32,6 +32,9 @@ nul
 # Sprint project documentation
 sprint-project/
 
+# Frontend
+frontend/
+
 # Logs
 *.log
 logs/
